@@ -105,6 +105,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const newToken = {
         token: token,
         blocked: false,
+        description: `Token created on ${new Date().toLocaleDateString()}`, // Added the required description field
         expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days expiry
       };
       

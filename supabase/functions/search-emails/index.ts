@@ -38,14 +38,38 @@ serve(async (req) => {
       .select("*")
       .eq("active", true)
       .limit(1)
-      .single();
+      .maybeSingle(); // Using maybeSingle instead of single to avoid errors when no record is found
     
-    if (googleAuthError || !googleAuthData) {
+    if (googleAuthError) {
       console.error("Google auth error:", googleAuthError);
       return new Response(
-        JSON.stringify({ error: "No active Google authentication found" }),
+        JSON.stringify({ error: "Error fetching Google authentication" }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+    
+    if (!googleAuthData) {
+      console.error("No active Google authentication found");
+      return new Response(
+        JSON.stringify({ error: "No active Google authentication found. Please add and activate a Google Auth configuration in the Admin panel." }),
         { 
           status: 404, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
+    // Check if we have an access token
+    if (!googleAuthData.access_token) {
+      return new Response(
+        JSON.stringify({ 
+          error: "No access token available. Please authorize with Google in the Admin panel." 
+        }),
+        { 
+          status: 401, 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
         }
       );
@@ -64,7 +88,6 @@ serve(async (req) => {
       
       // Check if token is expired
       if (response.status === 401) {
-        // Here you would refresh the token, but that's beyond the scope of this example
         return new Response(
           JSON.stringify({ error: "Gmail API token has expired. Please refresh the token in the admin panel." }),
           { 
@@ -75,7 +98,7 @@ serve(async (req) => {
       }
       
       return new Response(
-        JSON.stringify({ error: "Failed to fetch emails from Gmail API" }),
+        JSON.stringify({ error: "Failed to fetch emails from Gmail API: " + (errorData.error?.message || "Unknown error") }),
         { 
           status: response.status, 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
