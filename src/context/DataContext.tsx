@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { DataContextType, User, GoogleAuthConfig, Email, Admin } from "@/types";
 import { v4 as uuidv4 } from "@/utils/uuid";
@@ -59,7 +58,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           authUri: "https://accounts.google.com/o/oauth2/auth",
           tokenUri: "https://oauth2.googleapis.com/token",
           authProviderCertUrl: "https://www.googleapis.com/oauth2/v1/certs",
-          isActive: config.active || false
+          isActive: config.active || false,
+          access_token: config.access_token || null
         }));
         setGoogleConfigs(configs);
       }

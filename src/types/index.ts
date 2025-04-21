@@ -19,6 +19,7 @@ export interface GoogleAuthConfig {
   tokenUri: string;
   authProviderCertUrl: string;
   isActive: boolean;
+  access_token?: string;
 }
 
 export interface Email {

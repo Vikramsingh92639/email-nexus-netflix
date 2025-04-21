@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "@/components/ui/use-toast";
 
 const UserLogin = () => {
   const [accessToken, setAccessToken] = useState("");
@@ -26,11 +27,15 @@ const UserLogin = () => {
       
       if (success) {
         navigate("/dashboard");
+        toast({
+          title: "Login Successful",
+          description: "Welcome to the Email Nexus dashboard!",
+        });
       } else {
-        setError("Invalid or blocked access token");
+        setError("Invalid or blocked access token. Please check with your administrator.");
       }
-    } catch (err) {
-      setError("Login failed. Please try again.");
+    } catch (err: any) {
+      setError("Login failed: " + (err.message || "Please try again."));
       console.error(err);
     } finally {
       setIsLoading(false);
