@@ -51,8 +51,13 @@ serve(async (req) => {
         }
       );
     }
+
+    const projectId = "vmztmhwrsyomkohkglcv";
     
     // Exchange the authorization code for tokens
+    // Use the exact same redirect URI as in the auth request
+    const redirectUri = `https://${projectId}.supabase.co/functions/v1/google-auth-callback`;
+    
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: {
@@ -62,7 +67,7 @@ serve(async (req) => {
         code,
         client_id: googleAuthData.client_id,
         client_secret: googleAuthData.client_secret,
-        redirect_uri: `${Deno.env.get("SITE_URL") || "https://vmztmhwrsyomkohkglcv.supabase.co"}/functions/v1/google-auth-callback`,
+        redirect_uri: redirectUri,
         grant_type: "authorization_code",
       }),
     });

@@ -43,17 +43,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // User login
-  const login = async (accessToken: string, isAdminLogin: boolean): Promise<boolean> => {
+  const login = async (accessToken: string): Promise<boolean> => {
     try {
       // Validate token with Supabase
       const { data, error } = await supabase.functions.invoke('fetch-access-tokens');
       
       if (error) {
-        throw new Error(error.message);
+        toast({
+          title: "Login Error",
+          description: error.message || "Failed to fetch tokens",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      if (!data || !data.data) {
+        toast({
+          title: "Login Error",
+          description: "No access tokens found",
+          variant: "destructive"
+        });
+        return false;
       }
       
       // Check if token exists and is not blocked
-      const foundToken = data.data?.find((token: any) => token.token === accessToken);
+      const foundToken = data.data.find((token: any) => token.token === accessToken);
       
       if (!foundToken) {
         toast({
@@ -105,41 +119,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Admin login
   const adminLogin = async (username: string, password: string): Promise<boolean> => {
-    // Default admin credentials if none are set
-    const defaultAdmin = { username: "admin", password: "password" };
-    
-    // Try to get admin credentials from local storage
-    const storedAdmin = localStorage.getItem("adminCredentials");
-    let adminCredentials = defaultAdmin;
-    
-    if (storedAdmin) {
-      try {
-        adminCredentials = JSON.parse(storedAdmin);
-      } catch (err) {
-        console.error("Error parsing admin credentials:", err);
+    try {
+      // Default admin credentials if none are set
+      const defaultAdmin = { username: "admin", password: "password" };
+      
+      // Try to get admin credentials from local storage
+      const storedAdmin = localStorage.getItem("adminCredentials");
+      let adminCredentials = defaultAdmin;
+      
+      if (storedAdmin) {
+        try {
+          adminCredentials = JSON.parse(storedAdmin);
+        } catch (err) {
+          console.error("Error parsing admin credentials:", err);
+          // If there's an error parsing, use the default
+        }
+      } else {
+        // Set default admin credentials if none exist
+        localStorage.setItem("adminCredentials", JSON.stringify(defaultAdmin));
       }
-    } else {
-      // Set default admin credentials if none exist
-      localStorage.setItem("adminCredentials", JSON.stringify(defaultAdmin));
-    }
-    
-    // Check credentials
-    if (username === adminCredentials.username && password === adminCredentials.password) {
-      // Store admin state
-      setAdmin(adminCredentials);
-      setIsAuthenticated(true);
-      setIsAdmin(true);
       
-      toast({
-        title: "Login Successful",
-        description: "You have successfully logged in as an administrator.",
-      });
-      
-      return true;
-    } else {
+      // Check credentials
+      if (username === adminCredentials.username && password === adminCredentials.password) {
+        // Store admin state
+        setAdmin(adminCredentials);
+        setIsAuthenticated(true);
+        setIsAdmin(true);
+        
+        toast({
+          title: "Login Successful",
+          description: "You have successfully logged in as an administrator.",
+        });
+        
+        return true;
+      } else {
+        toast({
+          title: "Login Failed",
+          description: "Invalid admin credentials.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    } catch (error: any) {
+      console.error("Admin login error:", error);
       toast({
         title: "Login Failed",
-        description: "Invalid admin credentials.",
+        description: error.message || "An error occurred during login.",
         variant: "destructive"
       });
       return false;

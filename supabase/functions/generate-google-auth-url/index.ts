@@ -59,9 +59,12 @@ serve(async (req) => {
         }
       );
     }
+
+    const projectId = "vmztmhwrsyomkohkglcv"; 
     
     // Generate the OAuth URL
-    const redirectUri = `${Deno.env.get("SITE_URL") || "https://vmztmhwrsyomkohkglcv.supabase.co"}/functions/v1/google-auth-callback`;
+    // Use the exact same redirect URI as configured in Google Cloud Console
+    const redirectUri = `https://${projectId}.supabase.co/functions/v1/google-auth-callback`;
     
     const scope = encodeURIComponent('https://www.googleapis.com/auth/gmail.readonly');
     const authUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${encodeURIComponent(googleAuthData.client_id)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=code&access_type=offline&prompt=consent&state=${configId}`;

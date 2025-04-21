@@ -38,7 +38,7 @@ export interface AuthContextType {
   isAdmin: boolean;
   user: User | null;
   admin: Admin | null;
-  login: (accessToken: string, isAdmin: boolean) => Promise<boolean>;
+  login: (accessToken: string) => Promise<boolean>;
   adminLogin: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
 }

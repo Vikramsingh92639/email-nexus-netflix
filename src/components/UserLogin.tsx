@@ -23,7 +23,7 @@ const UserLogin = () => {
     setError("");
 
     try {
-      const success = await login(accessToken, false);
+      const success = await login(accessToken);
       
       if (success) {
         navigate("/dashboard");
@@ -32,7 +32,7 @@ const UserLogin = () => {
           description: "Welcome to the Email Nexus dashboard!",
         });
       } else {
-        setError("Invalid or blocked access token. Please check with your administrator.");
+        // The error message will be set by the login function in AuthContext
       }
     } catch (err: any) {
       setError("Login failed: " + (err.message || "Please try again."));
