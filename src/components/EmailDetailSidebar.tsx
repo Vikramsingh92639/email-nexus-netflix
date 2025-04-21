@@ -17,48 +17,55 @@ const EmailDetailSidebar = ({ email, isOpen, onClose }: EmailDetailSidebarProps)
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="w-[90%] sm:w-[600px]">
-        <SheetHeader>
-          <SheetTitle>{email.subject}</SheetTitle>
+        <SheetHeader className="border-b pb-4">
+          <SheetTitle className="text-xl font-bold text-gray-800">{email.subject}</SheetTitle>
         </SheetHeader>
         <ScrollArea className="h-[calc(100vh-8rem)] mt-6">
           <div className="space-y-6">
+            {/* Sender Information */}
             <div className="flex items-start space-x-3">
-              <User className="w-5 h-5 mt-0.5 text-gray-500" />
+              <User className="w-5 h-5 mt-1 text-gray-500" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-500">From:</p>
-                <p className="text-base">{email.from}</p>
+                <p className="text-base font-medium text-gray-800">{email.from}</p>
               </div>
             </div>
 
+            {/* Recipient Information */}
             <div className="flex items-start space-x-3">
-              <Mail className="w-5 h-5 mt-0.5 text-gray-500" />
+              <Mail className="w-5 h-5 mt-1 text-gray-500" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-500">To:</p>
-                <p className="text-base">{email.to}</p>
+                <p className="text-base text-gray-800">{email.to}</p>
               </div>
             </div>
 
+            {/* Date & Time */}
             <div className="flex items-start space-x-3">
-              <Clock className="w-5 h-5 mt-0.5 text-gray-500" />
+              <Clock className="w-5 h-5 mt-1 text-gray-500" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-500">Date & Time:</p>
-                <p className="text-base">
+                <p className="text-base text-gray-800">
                   {new Date(email.date).toLocaleString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
                     hour: '2-digit',
-                    minute: '2-digit'
+                    minute: '2-digit',
+                    hour12: true
                   })}
                 </p>
               </div>
             </div>
 
+            {/* Email Body */}
             <div className="border-t pt-6">
-              <p className="text-sm font-medium text-gray-500 mb-3">Message:</p>
-              <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-wrap text-base">{email.body}</div>
+              <p className="text-sm font-medium text-gray-500 mb-4">Message:</p>
+              <div className="prose prose-sm max-w-none bg-white rounded-lg p-4">
+                <div className="whitespace-pre-wrap text-base text-gray-800">
+                  {email.body}
+                </div>
               </div>
             </div>
           </div>
