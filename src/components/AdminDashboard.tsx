@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
 import { GoogleAuthConfig, User } from "@/types";
-import { LogIn, Plus, User as UserIcon, Trash, X, Edit, ExternalLink } from "lucide-react";
+import { LogIn, Plus, User as UserIcon, Trash, X, Edit, ExternalLink, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
@@ -141,11 +141,18 @@ const AdminDashboard = () => {
       if (data.error) throw new Error(data.error);
       
       if (data.authUrl) {
+        // Show helpful information before opening the auth window
+        toast({
+          title: "Google Authorization",
+          description: "For development purposes, you may see 'unverified app' warnings. These are normal in development.",
+        });
+        
         // Open the authorization URL in a new window
         window.open(data.authUrl, "_blank");
+        
         toast({
           title: "Google Authorization Started",
-          description: "Please complete the authorization in the new window.",
+          description: "Please complete the authorization in the new window. You may need to click 'Advanced' and 'Go to (app name)' if you see an unverified app warning.",
         });
       }
     } catch (err: any) {
@@ -159,6 +166,16 @@ const AdminDashboard = () => {
     } finally {
       setIsAuthorizing(false);
     }
+  };
+
+  // Handle Google verification instructions
+  const showVerificationInstructions = () => {
+    toast({
+      title: "Google Verification",
+      description: "See the verification instructions panel for details on setting up Google Cloud Console correctly.",
+      duration: 5000,
+    });
+    setActiveTab("verification");
   };
 
   return (
@@ -208,6 +225,16 @@ const AdminDashboard = () => {
               onClick={() => setActiveTab("settings")}
             >
               Admin Settings
+            </button>
+            <button
+              className={`py-4 px-4 text-sm font-medium transition-colors ${
+                activeTab === "verification" 
+                  ? "text-netflix-red border-b-2 border-netflix-red" 
+                  : "text-netflix-white hover:text-netflix-red"
+              }`}
+              onClick={() => setActiveTab("verification")}
+            >
+              Google Setup Help
             </button>
           </div>
         </div>
@@ -315,7 +342,28 @@ const AdminDashboard = () => {
         {/* Google OAuth Tab */}
         {activeTab === "google" && (
           <div className="max-w-4xl mx-auto netflix-fade-in">
-            <h2 className="text-xl font-semibold mb-6">Google OAuth Configuration</h2>
+            <h2 className="text-xl font-semibold mb-4">Google OAuth Configuration</h2>
+            
+            <div className="bg-netflix-red bg-opacity-20 p-4 rounded-md mb-6 flex items-start">
+              <AlertCircle className="text-netflix-red h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm">
+                  Google requires verification for OAuth apps that access sensitive data. For development:
+                </p>
+                <ul className="list-disc pl-5 text-sm mt-2">
+                  <li>We're using basic profile scopes only (not Gmail)</li>
+                  <li>When authorizing, click <strong>Advanced</strong> and then <strong>Go to [app name]</strong></li>
+                  <li className="mt-1">
+                    <button 
+                      onClick={showVerificationInstructions}
+                      className="text-netflix-red underline hover:text-white"
+                    >
+                      View detailed setup instructions
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
             
             {/* Add New Config Form */}
             <div className="bg-netflix-darkgray p-6 rounded-lg mb-8 netflix-scale-in">
@@ -528,6 +576,66 @@ const AdminDashboard = () => {
                   Current admin: {admin?.username}
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Google Verification Instructions Tab */}
+        {activeTab === "verification" && (
+          <div className="max-w-4xl mx-auto netflix-fade-in">
+            <h2 className="text-xl font-semibold mb-6">Google OAuth Setup Guide</h2>
+            
+            <div className="bg-netflix-darkgray p-6 rounded-lg space-y-6">
+              <div>
+                <h3 className="text-lg font-medium text-netflix-red mb-3">1. Create/Configure Google Cloud Project</h3>
+                <ol className="list-decimal pl-5 space-y-3">
+                  <li>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Google Cloud Console</a></li>
+                  <li>Create a new project or select an existing one</li>
+                  <li>Go to "APIs & Services" > "OAuth consent screen"</li>
+                  <li>Choose "External" user type and click "Create"</li>
+                  <li>Fill in the required app information (App name, User support email, Developer contact)</li>
+                  <li>Add scopes: <code className="bg-black px-1 rounded">.../auth/userinfo.email</code> and <code className="bg-black px-1 rounded">.../auth/userinfo.profile</code></li>
+                  <li>Add test users (your Google email) if in testing</li>
+                  <li>Review and publish consent screen</li>
+                </ol>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-medium text-netflix-red mb-3">2. Create OAuth Credentials</h3>
+                <ol className="list-decimal pl-5 space-y-3">
+                  <li>Go to "APIs & Services" > "Credentials"</li>
+                  <li>Click "Create Credentials" > "OAuth client ID"</li>
+                  <li>Choose "Web application" as the application type</li>
+                  <li>Add a name for your client</li>
+                  <li>Under "Authorized JavaScript origins", add: <code className="bg-black px-1 rounded text-xs sm:text-sm">https://vmztmhwrsyomkohkglcv.supabase.co</code></li>
+                  <li className="font-bold text-netflix-white">Under "Authorized redirect URIs", add exactly: <code className="bg-black px-1 rounded break-all text-xs sm:text-sm">https://vmztmhwrsyomkohkglcv.supabase.co/functions/v1/google-auth-callback</code></li>
+                  <li>Click "Create" to get your Client ID and Client Secret</li>
+                </ol>
+                <div className="p-3 bg-netflix-red bg-opacity-20 rounded-md mt-3 text-sm">
+                  <p className="font-bold">❗ Important: The "Authorized redirect URI" must exactly match what we're using in our code!</p>
+                  <p className="mt-1">If there's a mismatch, even a single character, you'll get the "redirect_uri_mismatch" error.</p>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-medium text-netflix-red mb-3">3. Download and Use JSON</h3>
+                <ol className="list-decimal pl-5 space-y-3">
+                  <li>From the Google Cloud credentials page, click the download icon (JSON) for your OAuth client</li>
+                  <li>Use the "Paste JSON Configuration" section in the Google OAuth tab to import these credentials</li>
+                  <li>Click "Add Configuration" to save</li>
+                </ol>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-medium text-netflix-red mb-3">4. Handling Unverified App Warnings</h3>
+                <p className="mb-3">Since your app is in development and not verified by Google, users will see a warning screen during authorization. To proceed:</p>
+                <ol className="list-decimal pl-5 space-y-3">
+                  <li>When you see the "App isn't verified" screen, click "Advanced"</li>
+                  <li>Click "Go to [your app name] (unsafe)"</li>
+                  <li>Complete the normal authorization flow</li>
+                </ol>
+                <p className="mt-3 text-sm text-gray-400">Note: For production, you'd need to complete Google's verification process.</p>
+              </div>
             </div>
           </div>
         )}
