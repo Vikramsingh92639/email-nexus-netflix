@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
@@ -43,7 +42,7 @@ const UserDashboard = () => {
       });
 
       if (error) {
-        throw new Error(error.message);
+        throw new Error(error.message || "Failed to search emails");
       }
 
       if (data.error) {
@@ -51,7 +50,6 @@ const UserDashboard = () => {
       }
 
       if (data.emails && Array.isArray(data.emails)) {
-        // Transform the API response to match our Email type
         const formattedEmails: Email[] = data.emails.map((email: any) => ({
           id: email.id,
           from: email.from,
@@ -69,7 +67,6 @@ const UserDashboard = () => {
           toast({
             title: "No emails found",
             description: `No emails from ${searchEmail} were found.`,
-            variant: "destructive"
           });
         } else {
           toast({
@@ -81,8 +78,7 @@ const UserDashboard = () => {
         setSearchResults([]);
         toast({
           title: "No emails found",
-          description: `No emails from ${searchEmail} were found.`,
-          variant: "destructive"
+          description: data.message || `No emails from ${searchEmail} were found.`,
         });
       }
     } catch (err: any) {
@@ -100,7 +96,6 @@ const UserDashboard = () => {
 
   const handleToggleVisibility = (id: string) => {
     toggleEmailVisibility(id);
-    // Also update local state
     setSearchResults(prev => 
       prev.map(email => 
         email.id === id ? { ...email, isHidden: !email.isHidden } : email
@@ -108,12 +103,10 @@ const UserDashboard = () => {
     );
   };
 
-  // Determine which emails to display - either search results or all emails
   const displayEmails = searchResults.length > 0 ? searchResults : emails;
 
   return (
     <div className="min-h-screen bg-netflix-black text-netflix-white">
-      {/* Header */}
       <header className="bg-netflix-gray py-4 px-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold text-netflix-red">Email Nexus</h1>
         <button 
@@ -125,10 +118,8 @@ const UserDashboard = () => {
         </button>
       </header>
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-8 netflix-fade-in">
         <div className="max-w-4xl mx-auto">
-          {/* Search Form */}
           <div className="bg-netflix-darkgray p-6 rounded-lg mb-8 netflix-scale-in">
             <h2 className="text-xl font-semibold mb-4">Search Emails</h2>
             
@@ -158,7 +149,6 @@ const UserDashboard = () => {
             </form>
           </div>
 
-          {/* Email List */}
           <div className="space-y-4">
             <h2 className="text-xl font-semibold mb-4">
               {displayEmails.length ? "Search Results" : "No emails found"}
@@ -195,7 +185,6 @@ const UserDashboard = () => {
               </div>
             ))}
             
-            {/* Hidden Emails Section */}
             {displayEmails.some(email => email.isHidden) && (
               <div className="mt-8">
                 <h3 className="text-lg font-semibold mb-4">Hidden Emails</h3>
