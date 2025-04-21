@@ -4,7 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
 import { GoogleAuthConfig, User } from "@/types";
-import { LogIn, Plus, User as UserIcon, Trash, X, Edit } from "lucide-react";
+import { LogIn, Plus, User as UserIcon, Trash, X, Edit, ExternalLink } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
 
 const AdminDashboard = () => {
   const { admin, logout } = useAuth();
@@ -41,6 +43,7 @@ const AdminDashboard = () => {
   const [jsonInput, setJsonInput] = useState("");
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [isAuthorizing, setIsAuthorizing] = useState(false);
 
   // UI states
   const [activeTab, setActiveTab] = useState("tokens");
@@ -122,6 +125,41 @@ const AdminDashboard = () => {
     setNewUsername("");
     setNewPassword("");
     setError("");
+  };
+
+  // Authorize with Google
+  const handleAuthorizeGoogle = async (configId: string) => {
+    setIsAuthorizing(true);
+    setError("");
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-google-auth-url', {
+        body: { configId }
+      });
+      
+      if (error) throw new Error(error.message);
+      
+      if (data.error) throw new Error(data.error);
+      
+      if (data.authUrl) {
+        // Open the authorization URL in a new window
+        window.open(data.authUrl, "_blank");
+        toast({
+          title: "Google Authorization Started",
+          description: "Please complete the authorization in the new window.",
+        });
+      }
+    } catch (err: any) {
+      console.error("Authorization error:", err);
+      setError(err.message || "Failed to start Google authorization");
+      toast({
+        title: "Authorization Error",
+        description: err.message || "Failed to start Google authorization",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAuthorizing(false);
+    }
   };
 
   return (
@@ -374,12 +412,26 @@ const AdminDashboard = () => {
                       <div>
                         <h4 className="font-semibold text-netflix-white">
                           {config.projectId || "Google OAuth Config"}
+                          {config.isActive && <span className="ml-2 px-2 py-1 text-xs rounded-full bg-green-900 text-green-200">Active</span>}
                         </h4>
-                        <div className="text-sm text-gray-400">
-                          {config.isActive ? "Active" : "Inactive"}
+                        <div className="text-sm text-gray-400 mt-1">
+                          {config.isActive ? 
+                            (config.access_token ? "Authorized" : "Not Authorized") : 
+                            "Inactive"}
                         </div>
                       </div>
                       <div className="flex space-x-2">
+                        {config.isActive && !config.access_token && (
+                          <button
+                            onClick={() => handleAuthorizeGoogle(config.id)}
+                            disabled={isAuthorizing}
+                            className="p-2 rounded text-green-500 hover:bg-netflix-lightgray transition-colors flex items-center"
+                            title="Authorize with Google"
+                          >
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            <span className="text-xs">Authorize</span>
+                          </button>
+                        )}
                         <button
                           onClick={() => updateGoogleConfig(config.id, { isActive: !config.isActive })}
                           className={`p-2 rounded hover:bg-netflix-lightgray transition-colors ${
@@ -414,6 +466,12 @@ const AdminDashboard = () => {
                         <div className="flex gap-2">
                           <span className="text-gray-400 w-24">Project ID:</span>
                           <span className="font-mono text-gray-200 truncate flex-1">{config.projectId}</span>
+                        </div>
+                      )}
+                      {config.access_token && (
+                        <div className="flex gap-2">
+                          <span className="text-gray-400 w-24">Status:</span>
+                          <span className="font-mono text-green-400 truncate flex-1">Authorized ✓</span>
                         </div>
                       )}
                     </div>

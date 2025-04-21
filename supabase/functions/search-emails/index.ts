@@ -20,7 +20,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Email address is required" }),
         { 
-          status: 400, 
+          status: 200, 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
         }
       );
@@ -45,7 +45,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Error fetching Google authentication", details: googleAuthError }),
         { 
-          status: 500, 
+          status: 200, 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
         }
       );
@@ -56,7 +56,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "No active Google authentication found. Please add and activate a Google Auth configuration in the Admin panel." }),
         { 
-          status: 200,  // Changed from 404 to 200 to avoid non-2xx error
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
         }
       );
@@ -64,15 +64,82 @@ serve(async (req) => {
 
     // Check if we have an access token
     if (!googleAuthData.access_token) {
-      return new Response(
-        JSON.stringify({ 
-          error: "No access token available. Please authorize with Google in the Admin panel." 
-        }),
-        { 
-          status: 200,  // Changed from 401 to 200 to avoid non-2xx error
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      // If we don't have an access token but we have client credentials and refresh token, try to get a new access token
+      if (googleAuthData.client_id && googleAuthData.client_secret && googleAuthData.refresh_token) {
+        try {
+          const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              client_id: googleAuthData.client_id,
+              client_secret: googleAuthData.client_secret,
+              refresh_token: googleAuthData.refresh_token,
+              grant_type: "refresh_token",
+            }),
+          });
+          
+          const tokenData = await tokenResponse.json();
+          
+          if (tokenData.access_token) {
+            // Update the access token in the database
+            const { error: updateError } = await supabaseAdmin
+              .from("google_auth")
+              .update({
+                access_token: tokenData.access_token,
+                token_expiry: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
+              })
+              .eq("id", googleAuthData.id);
+              
+            if (updateError) {
+              console.error("Error updating access token:", updateError);
+              return new Response(
+                JSON.stringify({ error: "Failed to update access token", details: updateError }),
+                { 
+                  status: 200, 
+                  headers: { ...corsHeaders, "Content-Type": "application/json" } 
+                }
+              );
+            }
+            
+            // Use the new access token
+            googleAuthData.access_token = tokenData.access_token;
+          } else {
+            console.error("Failed to refresh access token:", tokenData);
+            return new Response(
+              JSON.stringify({ 
+                error: "Failed to refresh access token. Please reauthorize with Google in the Admin panel."
+              }),
+              { 
+                status: 200, 
+                headers: { ...corsHeaders, "Content-Type": "application/json" } 
+              }
+            );
+          }
+        } catch (refreshError) {
+          console.error("Error refreshing token:", refreshError);
+          return new Response(
+            JSON.stringify({ 
+              error: "Error refreshing token. Please reauthorize with Google in the Admin panel." 
+            }),
+            { 
+              status: 200, 
+              headers: { ...corsHeaders, "Content-Type": "application/json" } 
+            }
+          );
         }
-      );
+      } else {
+        return new Response(
+          JSON.stringify({ 
+            error: "No access token available. You need to complete the Google OAuth process in the Admin panel." 
+          }),
+          { 
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" } 
+          }
+        );
+      }
     }
     
     // Use the access token to fetch emails
@@ -86,7 +153,23 @@ serve(async (req) => {
       const errorData = await response.json();
       console.error("Gmail API error:", errorData);
       
-      // Always return 200 status to client, but include error details
+      // Check if token expired
+      if (response.status === 401) {
+        // Token might be expired, try to refresh if we have a refresh token
+        if (googleAuthData.refresh_token) {
+          // Similar refresh logic as above
+          return new Response(
+            JSON.stringify({ 
+              error: "Access token expired. Please try again or reauthorize in the Admin panel."
+            }),
+            { 
+              status: 200, 
+              headers: { ...corsHeaders, "Content-Type": "application/json" } 
+            }
+          );
+        }
+      }
+      
       return new Response(
         JSON.stringify({ 
           error: "Failed to fetch emails from Gmail API: " + (errorData.error?.message || "Unknown error"),
@@ -94,7 +177,7 @@ serve(async (req) => {
           errorDetails: errorData
         }),
         { 
-          status: 200,  // Always return 200 to client
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
         }
       );
@@ -200,7 +283,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: error.message || "Unknown error occurred" }),
       { 
-        status: 200,  // Return 200 even for errors to prevent non-2xx status
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
       }
     );
