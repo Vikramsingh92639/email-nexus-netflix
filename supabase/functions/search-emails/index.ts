@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -141,7 +142,7 @@ serve(async (req) => {
       }
     }
     
-    // Use the access token to fetch emails
+    // Use the access token to fetch emails with full message scope
     const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?q=from:" + encodeURIComponent(searchEmail), {
       headers: {
         Authorization: `Bearer ${googleAuthData.access_token}`,
@@ -195,7 +196,7 @@ serve(async (req) => {
     
     // Fetch details for each message (limited to first 10 for performance)
     const emailPromises = messagesData.messages.slice(0, 10).map(async (message) => {
-      const msgResponse = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}`, {
+      const msgResponse = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=full`, {
         headers: {
           Authorization: `Bearer ${googleAuthData.access_token}`,
         },
@@ -212,7 +213,7 @@ serve(async (req) => {
     const emailDetails = await Promise.all(emailPromises);
     const validEmails = emailDetails.filter(email => email !== null);
     
-    // Process and format the emails
+    // Process and format the emails with complete content
     const formattedEmails = validEmails.map(email => {
       // Extract headers
       const headers = email.payload.headers;
@@ -221,7 +222,7 @@ serve(async (req) => {
       const to = headers.find((h) => h.name === "To")?.value || "";
       const date = headers.find((h) => h.name === "Date")?.value || "";
       
-      // Extract body content (without truncation)
+      // Extract complete body content without truncation
       let body = "";
       if (email.payload.parts && email.payload.parts.length) {
         const textPart = email.payload.parts.find((part) => part.mimeType === "text/plain");
@@ -254,7 +255,7 @@ serve(async (req) => {
             from_address: email.from,
             to_address: email.to,
             subject: email.subject,
-            snippet: email.body,
+            snippet: email.body,  // Store the full email body
             date: new Date(email.date).toISOString(),
             read: email.isRead,
             hidden: email.isHidden

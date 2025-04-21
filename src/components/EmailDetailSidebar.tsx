@@ -58,7 +58,7 @@ const EmailDetailSidebar = ({ email, isOpen, onClose }: EmailDetailSidebarProps)
             <div className="border-t pt-6">
               <p className="text-sm font-medium text-gray-500 mb-3">Message:</p>
               <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-wrap text-base">{email.body.replace('...', '')}</div>
+                <div className="whitespace-pre-wrap text-base">{email.body}</div>
               </div>
             </div>
           </div>
