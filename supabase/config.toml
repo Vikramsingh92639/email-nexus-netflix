@@ -12,3 +12,18 @@ verify_jwt = true
 
 [functions.delete-google-config]
 verify_jwt = true
+
+[functions.add-access-token]
+verify_jwt = true
+
+[functions.delete-access-token]
+verify_jwt = true
+
+[functions.update-access-token]
+verify_jwt = true
+
+[functions.fetch-access-tokens]
+verify_jwt = true
+
+[functions.fetch-google-configs]
+verify_jwt = true

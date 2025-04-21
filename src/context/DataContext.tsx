@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { DataContextType, User, GoogleAuthConfig, Email, Admin } from "@/types";
 import { v4 as uuidv4 } from "@/utils/uuid";
@@ -23,17 +24,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchEmails();
   }, []);
 
-  // Fetch data from Supabase
+  // Fetch data using Edge Functions
   const fetchAccessTokens = async () => {
     try {
-      const { data, error } = await supabase
-        .from('access_tokens')
-        .select('*');
+      const { data, error } = await supabase.functions.invoke('fetch-access-tokens');
       
       if (error) throw error;
       
-      if (data) {
-        const tokens: User[] = data.map(token => ({
+      if (data && data.success && data.data) {
+        const tokens: User[] = data.data.map((token: any) => ({
           id: token.id,
           accessToken: token.token,
           isBlocked: token.blocked || false
@@ -47,14 +46,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchGoogleConfigs = async () => {
     try {
-      const { data, error } = await supabase
-        .from('google_auth')
-        .select('*');
+      const { data, error } = await supabase.functions.invoke('fetch-google-configs');
       
       if (error) throw error;
       
-      if (data) {
-        const configs: GoogleAuthConfig[] = data.map(config => ({
+      if (data && data.success && data.data) {
+        const configs: GoogleAuthConfig[] = data.data.map((config: any) => ({
           id: config.id,
           clientId: config.client_id,
           clientSecret: config.client_secret,
@@ -101,26 +98,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Access Token operations
   const addAccessToken = async (token: string) => {
     try {
-      const newToken = {
-        token: token,
-        blocked: false,
-        description: `Token created on ${new Date().toLocaleDateString()}`,
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-      };
-      
-      const { data, error } = await supabase
-        .from('access_tokens')
-        .insert(newToken)
-        .select()
-        .single();
+      const { data, error } = await supabase.functions.invoke('add-access-token', {
+        body: {
+          token: token,
+          description: `Token created on ${new Date().toLocaleDateString()}`,
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      });
       
       if (error) throw error;
       
-      if (data) {
+      if (data.error) throw new Error(data.error);
+      
+      if (data.success && data.data) {
         const formattedToken: User = {
-          id: data.id,
-          accessToken: data.token,
-          isBlocked: data.blocked || false
+          id: data.data.id,
+          accessToken: data.data.token,
+          isBlocked: data.data.blocked || false
         };
         
         setAccessTokens(prev => [...prev, formattedToken]);
@@ -129,6 +123,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: "Access token added successfully",
         });
       }
+      
+      // Refresh the tokens list to ensure we have the latest data
+      await fetchAccessTokens();
+      
     } catch (error: any) {
       console.error('Error adding access token:', error);
       toast({
@@ -141,12 +139,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteAccessToken = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('access_tokens')
-        .delete()
-        .eq('id', id);
+      const { data, error } = await supabase.functions.invoke('delete-access-token', {
+        body: { id }
+      });
       
       if (error) throw error;
+      
+      if (data.error) throw new Error(data.error);
       
       setAccessTokens(prev => prev.filter(token => token.id !== id));
       toast({
@@ -165,12 +164,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const blockAccessToken = async (id: string, blocked: boolean) => {
     try {
-      const { error } = await supabase
-        .from('access_tokens')
-        .update({ blocked })
-        .eq('id', id);
+      const { data, error } = await supabase.functions.invoke('update-access-token', {
+        body: { id, blocked }
+      });
       
       if (error) throw error;
+      
+      if (data.error) throw new Error(data.error);
       
       setAccessTokens(prev => 
         prev.map(token => 
@@ -181,6 +181,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "Success",
         description: `Access token ${blocked ? 'blocked' : 'unblocked'} successfully`,
       });
+      
+      // Refresh the tokens list to ensure we have the latest data
+      await fetchAccessTokens();
+      
     } catch (error: any) {
       console.error('Error blocking access token:', error);
       toast({
@@ -194,7 +198,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Google Config operations
   const addGoogleConfig = async (config: Omit<GoogleAuthConfig, "id" | "isActive">) => {
     try {
-      const { error: apiError } = await supabase.functions.invoke('add-google-config', {
+      const { error: apiError, data } = await supabase.functions.invoke('add-google-config', {
         body: {
           client_id: config.clientId,
           client_secret: config.clientSecret,
@@ -205,6 +209,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (apiError) throw apiError;
       
+      if (data && data.error) throw new Error(data.error);
+      
+      // Refresh Google configs to ensure we have the latest data
       await fetchGoogleConfigs();
       
       toast({
@@ -230,7 +237,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (config.projectId !== undefined) updates.description = config.projectId;
       if (config.isActive !== undefined) updates.active = config.isActive;
       
-      const { error: apiError } = await supabase.functions.invoke('update-google-config', {
+      const { error: apiError, data } = await supabase.functions.invoke('update-google-config', {
         body: {
           id: id,
           updates: updates
@@ -239,6 +246,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (apiError) throw apiError;
       
+      if (data && data.error) throw new Error(data.error);
+      
+      // Refresh Google configs to ensure we have the latest data
       await fetchGoogleConfigs();
       
       toast({
@@ -257,7 +267,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteGoogleConfig = async (id: string) => {
     try {
-      const { error: apiError } = await supabase.functions.invoke('delete-google-config', {
+      const { error: apiError, data } = await supabase.functions.invoke('delete-google-config', {
         body: {
           id: id
         }
@@ -265,11 +275,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (apiError) throw apiError;
       
+      if (data && data.error) throw new Error(data.error);
+      
       setGoogleConfigs(prev => prev.filter(config => config.id !== id));
       toast({
         title: "Success",
         description: "Google authentication configuration deleted successfully",
       });
+      
+      // Refresh Google configs to ensure we have the latest data
+      await fetchGoogleConfigs();
+      
     } catch (error: any) {
       console.error('Error deleting Google config:', error);
       toast({
