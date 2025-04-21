@@ -5,15 +5,18 @@ import { useData } from "@/context/DataContext";
 import { Email } from "@/types";
 import { useNavigate } from "react-router-dom";
 import { Search, Eye, EyeOff, LogIn } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
-  const { emails, fetchEmails, toggleEmailVisibility } = useData();
+  const { emails, toggleEmailVisibility } = useData();
   const navigate = useNavigate();
 
   const [searchEmail, setSearchEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [searchResults, setSearchResults] = useState<Email[]>([]);
 
   // If not logged in, redirect to login
   useEffect(() => {
@@ -32,12 +35,64 @@ const UserDashboard = () => {
     
     setIsLoading(true);
     setError("");
+    setSearchResults([]);
 
     try {
-      await fetchEmails(searchEmail);
-    } catch (err) {
-      setError("Failed to fetch emails. Please try again.");
-      console.error(err);
+      const { data, error } = await supabase.functions.invoke('search-emails', {
+        body: { searchEmail: searchEmail.trim() }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data.emails && Array.isArray(data.emails)) {
+        // Transform the API response to match our Email type
+        const formattedEmails: Email[] = data.emails.map((email: any) => ({
+          id: email.id,
+          from: email.from,
+          to: email.to,
+          subject: email.subject,
+          body: email.body,
+          date: email.date,
+          isRead: email.isRead,
+          isHidden: false
+        }));
+
+        setSearchResults(formattedEmails);
+        
+        if (formattedEmails.length === 0) {
+          toast({
+            title: "No emails found",
+            description: `No emails from ${searchEmail} were found.`,
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Emails retrieved",
+            description: `Found ${formattedEmails.length} emails from ${searchEmail}.`,
+          });
+        }
+      } else {
+        setSearchResults([]);
+        toast({
+          title: "No emails found",
+          description: `No emails from ${searchEmail} were found.`,
+          variant: "destructive"
+        });
+      }
+    } catch (err: any) {
+      console.error("Search error:", err);
+      setError(err.message || "Failed to search emails. Please try again.");
+      toast({
+        title: "Search failed",
+        description: err.message || "Failed to search emails. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -45,7 +100,16 @@ const UserDashboard = () => {
 
   const handleToggleVisibility = (id: string) => {
     toggleEmailVisibility(id);
+    // Also update local state
+    setSearchResults(prev => 
+      prev.map(email => 
+        email.id === id ? { ...email, isHidden: !email.isHidden } : email
+      )
+    );
   };
+
+  // Determine which emails to display - either search results or all emails
+  const displayEmails = searchResults.length > 0 ? searchResults : emails;
 
   return (
     <div className="min-h-screen bg-netflix-black text-netflix-white">
@@ -97,10 +161,10 @@ const UserDashboard = () => {
           {/* Email List */}
           <div className="space-y-4">
             <h2 className="text-xl font-semibold mb-4">
-              {emails.length ? "Search Results" : "No emails found"}
+              {displayEmails.length ? "Search Results" : "No emails found"}
             </h2>
             
-            {emails.filter(email => !email.isHidden).map((email, index) => (
+            {displayEmails.filter(email => !email.isHidden).map((email, index) => (
               <div 
                 key={email.id}
                 className="bg-netflix-gray p-4 rounded-lg hover:bg-netflix-lightgray transition-colors netflix-slide-up"
@@ -132,11 +196,11 @@ const UserDashboard = () => {
             ))}
             
             {/* Hidden Emails Section */}
-            {emails.some(email => email.isHidden) && (
+            {displayEmails.some(email => email.isHidden) && (
               <div className="mt-8">
                 <h3 className="text-lg font-semibold mb-4">Hidden Emails</h3>
                 
-                {emails.filter(email => email.isHidden).map((email, index) => (
+                {displayEmails.filter(email => email.isHidden).map((email, index) => (
                   <div 
                     key={email.id}
                     className="bg-netflix-gray bg-opacity-50 p-4 rounded-lg hover:bg-netflix-lightgray transition-colors netflix-slide-up"

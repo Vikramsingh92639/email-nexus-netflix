@@ -1,1 +1,5 @@
+
 project_id = "vmztmhwrsyomkohkglcv"
+
+[functions.search-emails]
+verify_jwt = true
