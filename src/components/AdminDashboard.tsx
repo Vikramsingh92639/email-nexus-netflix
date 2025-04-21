@@ -1,0 +1,482 @@
+
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { useData } from "@/context/DataContext";
+import { GoogleAuthConfig, User } from "@/types";
+import { LogIn, Plus, User as UserIcon, Trash, X, Edit } from "lucide-react";
+
+const AdminDashboard = () => {
+  const { admin, logout } = useAuth();
+  const { 
+    accessTokens, 
+    googleConfigs, 
+    addAccessToken, 
+    deleteAccessToken, 
+    blockAccessToken,
+    addGoogleConfig,
+    updateGoogleConfig,
+    deleteGoogleConfig,
+    updateAdminCredentials
+  } = useData();
+  const navigate = useNavigate();
+
+  // States for different forms
+  const [newToken, setNewToken] = useState("");
+  const [newConfig, setNewConfig] = useState<{ 
+    clientId: string; 
+    clientSecret: string;
+    projectId: string;
+    authUri: string;
+    tokenUri: string;
+    authProviderCertUrl: string;
+  }>({
+    clientId: "",
+    clientSecret: "",
+    projectId: "",
+    authUri: "https://accounts.google.com/o/oauth2/auth",
+    tokenUri: "https://oauth2.googleapis.com/token",
+    authProviderCertUrl: "https://www.googleapis.com/oauth2/v1/certs"
+  });
+  const [jsonInput, setJsonInput] = useState("");
+  const [newUsername, setNewUsername] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+
+  // UI states
+  const [activeTab, setActiveTab] = useState("tokens");
+  const [error, setError] = useState("");
+  const [editingConfig, setEditingConfig] = useState<string | null>(null);
+
+  // If not logged in as admin, redirect
+  useEffect(() => {
+    if (!admin) {
+      navigate("/admin-login");
+    }
+  }, [admin, navigate]);
+
+  // Handle adding new access token
+  const handleAddToken = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newToken.trim()) {
+      setError("Token cannot be empty");
+      return;
+    }
+    
+    addAccessToken(newToken);
+    setNewToken("");
+    setError("");
+  };
+
+  // Handle adding new Google config
+  const handleAddConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newConfig.clientId || !newConfig.clientSecret) {
+      setError("Client ID and Secret are required");
+      return;
+    }
+    
+    addGoogleConfig(newConfig);
+    setNewConfig({
+      clientId: "",
+      clientSecret: "",
+      projectId: "",
+      authUri: "https://accounts.google.com/o/oauth2/auth",
+      tokenUri: "https://oauth2.googleapis.com/token",
+      authProviderCertUrl: "https://www.googleapis.com/oauth2/v1/certs"
+    });
+    setError("");
+  };
+
+  // Parse JSON input for Google config
+  const handleParseJson = () => {
+    try {
+      const parsed = JSON.parse(jsonInput);
+      if (parsed && parsed.web) {
+        setNewConfig({
+          clientId: parsed.web.client_id || "",
+          clientSecret: parsed.web.client_secret || "",
+          projectId: parsed.web.project_id || "",
+          authUri: parsed.web.auth_uri || "https://accounts.google.com/o/oauth2/auth",
+          tokenUri: parsed.web.token_uri || "https://oauth2.googleapis.com/token",
+          authProviderCertUrl: parsed.web.auth_provider_x509_cert_url || "https://www.googleapis.com/oauth2/v1/certs"
+        });
+        setError("");
+      } else {
+        setError("Invalid JSON format. Must contain a 'web' object with credentials.");
+      }
+    } catch (err) {
+      setError("Failed to parse JSON. Please check the format.");
+      console.error(err);
+    }
+  };
+
+  // Update admin credentials
+  const handleUpdateCredentials = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUsername.trim() || !newPassword.trim()) {
+      setError("Username and password are required");
+      return;
+    }
+    
+    updateAdminCredentials(newUsername, newPassword);
+    setNewUsername("");
+    setNewPassword("");
+    setError("");
+  };
+
+  return (
+    <div className="min-h-screen bg-netflix-black text-netflix-white">
+      {/* Header */}
+      <header className="bg-netflix-gray py-4 px-6 flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-netflix-red">Admin Dashboard</h1>
+        <button 
+          onClick={logout}
+          className="flex items-center text-netflix-white hover:text-netflix-red transition-colors"
+        >
+          <LogIn className="mr-2 h-5 w-5" />
+          Logout
+        </button>
+      </header>
+
+      {/* Tab Navigation */}
+      <nav className="bg-netflix-darkgray border-b border-netflix-gray">
+        <div className="container mx-auto px-4">
+          <div className="flex space-x-4">
+            <button
+              className={`py-4 px-4 text-sm font-medium transition-colors ${
+                activeTab === "tokens" 
+                  ? "text-netflix-red border-b-2 border-netflix-red" 
+                  : "text-netflix-white hover:text-netflix-red"
+              }`}
+              onClick={() => setActiveTab("tokens")}
+            >
+              Access Tokens
+            </button>
+            <button
+              className={`py-4 px-4 text-sm font-medium transition-colors ${
+                activeTab === "google" 
+                  ? "text-netflix-red border-b-2 border-netflix-red" 
+                  : "text-netflix-white hover:text-netflix-red"
+              }`}
+              onClick={() => setActiveTab("google")}
+            >
+              Google OAuth
+            </button>
+            <button
+              className={`py-4 px-4 text-sm font-medium transition-colors ${
+                activeTab === "settings" 
+                  ? "text-netflix-red border-b-2 border-netflix-red" 
+                  : "text-netflix-white hover:text-netflix-red"
+              }`}
+              onClick={() => setActiveTab("settings")}
+            >
+              Admin Settings
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        {error && (
+          <div className="bg-netflix-red bg-opacity-30 text-netflix-white p-3 rounded mb-4 max-w-4xl mx-auto netflix-fade-in">
+            {error}
+          </div>
+        )}
+
+        {/* Access Tokens Tab */}
+        {activeTab === "tokens" && (
+          <div className="max-w-4xl mx-auto netflix-fade-in">
+            <h2 className="text-xl font-semibold mb-6">Manage Access Tokens</h2>
+            
+            {/* Add New Token Form */}
+            <div className="bg-netflix-darkgray p-6 rounded-lg mb-8 netflix-scale-in">
+              <h3 className="text-lg font-medium mb-4">Create New Token</h3>
+              <form onSubmit={handleAddToken} className="flex gap-2">
+                <input
+                  type="text"
+                  value={newToken}
+                  onChange={(e) => setNewToken(e.target.value)}
+                  placeholder="Enter new access token"
+                  className="netflix-input flex-1"
+                />
+                <button 
+                  type="submit" 
+                  className="netflix-button flex items-center"
+                >
+                  <Plus className="mr-2 h-5 w-5" />
+                  Add Token
+                </button>
+              </form>
+            </div>
+            
+            {/* List of Tokens */}
+            <div className="bg-netflix-gray rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-netflix-lightgray">
+                    <th className="py-3 px-4 text-left">Token</th>
+                    <th className="py-3 px-4 text-left">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {accessTokens.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="py-4 px-4 text-center text-gray-400">
+                        No access tokens created yet
+                      </td>
+                    </tr>
+                  ) : (
+                    accessTokens.map((token, index) => (
+                      <tr 
+                        key={token.id} 
+                        className="border-t border-netflix-darkgray netflix-fade-in"
+                        style={{ animationDelay: `${index * 0.1}s` }}
+                      >
+                        <td className="py-3 px-4">
+                          <span className="font-mono">{token.accessToken}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            token.isBlocked 
+                              ? "bg-red-900 text-red-200" 
+                              : "bg-green-900 text-green-200"
+                          }`}>
+                            {token.isBlocked ? "Blocked" : "Active"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex justify-end space-x-2">
+                            <button
+                              onClick={() => blockAccessToken(token.id, !token.isBlocked)}
+                              className={`p-2 rounded hover:bg-netflix-lightgray transition-colors ${
+                                token.isBlocked ? "text-green-500" : "text-red-500"
+                              }`}
+                              title={token.isBlocked ? "Unblock" : "Block"}
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteAccessToken(token.id)}
+                              className="p-2 rounded text-red-500 hover:bg-netflix-lightgray transition-colors"
+                              title="Delete"
+                            >
+                              <Trash className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Google OAuth Tab */}
+        {activeTab === "google" && (
+          <div className="max-w-4xl mx-auto netflix-fade-in">
+            <h2 className="text-xl font-semibold mb-6">Google OAuth Configuration</h2>
+            
+            {/* Add New Config Form */}
+            <div className="bg-netflix-darkgray p-6 rounded-lg mb-8 netflix-scale-in">
+              <h3 className="text-lg font-medium mb-4">Add New Configuration</h3>
+              
+              {/* JSON Input */}
+              <div className="mb-6">
+                <label className="block text-netflix-white mb-2">
+                  Paste JSON Configuration
+                </label>
+                <div className="flex gap-2 mb-4">
+                  <textarea
+                    value={jsonInput}
+                    onChange={(e) => setJsonInput(e.target.value)}
+                    placeholder='{"web":{"client_id":"...","project_id":"...","auth_uri":"...","token_uri":"...","auth_provider_x509_cert_url":"...","client_secret":"..."}}'
+                    className="netflix-input flex-1"
+                    rows={4}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={handleParseJson}
+                    className="netflix-button self-start"
+                  >
+                    Parse
+                  </button>
+                </div>
+              </div>
+              
+              {/* Manual Input Form */}
+              <form onSubmit={handleAddConfig}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-netflix-white mb-2">
+                      Client ID
+                    </label>
+                    <input
+                      type="text"
+                      value={newConfig.clientId}
+                      onChange={(e) => setNewConfig({...newConfig, clientId: e.target.value})}
+                      placeholder="Google Client ID"
+                      className="netflix-input w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-netflix-white mb-2">
+                      Client Secret
+                    </label>
+                    <input
+                      type="text"
+                      value={newConfig.clientSecret}
+                      onChange={(e) => setNewConfig({...newConfig, clientSecret: e.target.value})}
+                      placeholder="Google Client Secret"
+                      className="netflix-input w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-netflix-white mb-2">
+                      Project ID
+                    </label>
+                    <input
+                      type="text"
+                      value={newConfig.projectId}
+                      onChange={(e) => setNewConfig({...newConfig, projectId: e.target.value})}
+                      placeholder="Google Project ID"
+                      className="netflix-input w-full"
+                    />
+                  </div>
+                </div>
+                
+                <button 
+                  type="submit" 
+                  className="netflix-button w-full"
+                >
+                  Add Configuration
+                </button>
+              </form>
+            </div>
+            
+            {/* List of Google Configs */}
+            <div className="space-y-4">
+              {googleConfigs.length === 0 ? (
+                <div className="text-center text-gray-400 py-8">
+                  No Google OAuth configurations added yet
+                </div>
+              ) : (
+                googleConfigs.map((config, index) => (
+                  <div 
+                    key={config.id}
+                    className="bg-netflix-gray p-4 rounded-lg netflix-fade-in"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="font-semibold text-netflix-white">
+                          {config.projectId || "Google OAuth Config"}
+                        </h4>
+                        <div className="text-sm text-gray-400">
+                          {config.isActive ? "Active" : "Inactive"}
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => updateGoogleConfig(config.id, { isActive: !config.isActive })}
+                          className={`p-2 rounded hover:bg-netflix-lightgray transition-colors ${
+                            config.isActive ? "text-red-500" : "text-green-500"
+                          }`}
+                          title={config.isActive ? "Deactivate" : "Activate"}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteGoogleConfig(config.id)}
+                          className="p-2 rounded text-red-500 hover:bg-netflix-lightgray transition-colors"
+                          title="Delete"
+                        >
+                          <Trash className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex gap-2">
+                        <span className="text-gray-400 w-24">Client ID:</span>
+                        <span className="font-mono text-gray-200 truncate flex-1">{config.clientId}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="text-gray-400 w-24">Client Secret:</span>
+                        <span className="font-mono text-gray-200 truncate flex-1">
+                          {config.clientSecret.substring(0, 8)}...
+                        </span>
+                      </div>
+                      {config.projectId && (
+                        <div className="flex gap-2">
+                          <span className="text-gray-400 w-24">Project ID:</span>
+                          <span className="font-mono text-gray-200 truncate flex-1">{config.projectId}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Admin Settings Tab */}
+        {activeTab === "settings" && (
+          <div className="max-w-4xl mx-auto netflix-fade-in">
+            <h2 className="text-xl font-semibold mb-6">Admin Account Settings</h2>
+            
+            {/* Update Admin Credentials Form */}
+            <div className="bg-netflix-darkgray p-6 rounded-lg netflix-scale-in">
+              <h3 className="text-lg font-medium mb-4">Update Admin Credentials</h3>
+              
+              <form onSubmit={handleUpdateCredentials} className="space-y-4">
+                <div>
+                  <label className="block text-netflix-white mb-2">
+                    New Username
+                  </label>
+                  <input
+                    type="text"
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                    placeholder="New admin username"
+                    className="netflix-input w-full"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-netflix-white mb-2">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="New admin password"
+                    className="netflix-input w-full"
+                  />
+                </div>
+                
+                <button 
+                  type="submit" 
+                  className="netflix-button w-full"
+                >
+                  Update Credentials
+                </button>
+                
+                <div className="text-center text-sm text-gray-400 mt-4">
+                  Current admin: {admin?.username}
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default AdminDashboard;

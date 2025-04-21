@@ -19,6 +19,14 @@ export default {
 		},
 		extend: {
 			colors: {
+				netflix: {
+					red: '#E50914',
+					black: '#141414',
+					darkgray: '#181818',
+					gray: '#222222',
+					lightgray: '#303030',
+					white: '#FFFFFF',
+				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
