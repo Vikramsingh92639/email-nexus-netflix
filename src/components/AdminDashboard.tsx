@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -351,7 +352,7 @@ const AdminDashboard = () => {
                   Google requires verification for OAuth apps that access sensitive data. For development:
                 </p>
                 <ul className="list-disc pl-5 text-sm mt-2">
-                  <li>We're using basic profile scopes only (not Gmail)</li>
+                  <li>We're now requesting Gmail access (gmail.readonly scope)</li>
                   <li>When authorizing, click <strong>Advanced</strong> and then <strong>Go to [app name]</strong></li>
                   <li className="mt-1">
                     <button 
@@ -591,10 +592,10 @@ const AdminDashboard = () => {
                 <ol className="list-decimal pl-5 space-y-3">
                   <li>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Google Cloud Console</a></li>
                   <li>Create a new project or select an existing one</li>
-                  <li>Go to "APIs & Services" > "OAuth consent screen"</li>
+                  <li>Go to "APIs & Services" {">"} "OAuth consent screen"</li>
                   <li>Choose "External" user type and click "Create"</li>
                   <li>Fill in the required app information (App name, User support email, Developer contact)</li>
-                  <li>Add scopes: <code className="bg-black px-1 rounded">.../auth/userinfo.email</code> and <code className="bg-black px-1 rounded">.../auth/userinfo.profile</code></li>
+                  <li>Add scopes: <code className="bg-black px-1 rounded">userinfo.email</code>, <code className="bg-black px-1 rounded">userinfo.profile</code>, and <code className="bg-black px-1 rounded">gmail.readonly</code></li>
                   <li>Add test users (your Google email) if in testing</li>
                   <li>Review and publish consent screen</li>
                 </ol>
@@ -603,8 +604,8 @@ const AdminDashboard = () => {
               <div>
                 <h3 className="text-lg font-medium text-netflix-red mb-3">2. Create OAuth Credentials</h3>
                 <ol className="list-decimal pl-5 space-y-3">
-                  <li>Go to "APIs & Services" > "Credentials"</li>
-                  <li>Click "Create Credentials" > "OAuth client ID"</li>
+                  <li>Go to "APIs & Services" {">"} "Credentials"</li>
+                  <li>Click "Create Credentials" {">"} "OAuth client ID"</li>
                   <li>Choose "Web application" as the application type</li>
                   <li>Add a name for your client</li>
                   <li>Under "Authorized JavaScript origins", add: <code className="bg-black px-1 rounded text-xs sm:text-sm">https://vmztmhwrsyomkohkglcv.supabase.co</code></li>
