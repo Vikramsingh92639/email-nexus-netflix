@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -222,7 +221,7 @@ serve(async (req) => {
       const to = headers.find((h) => h.name === "To")?.value || "";
       const date = headers.find((h) => h.name === "Date")?.value || "";
       
-      // Extract body content (simplified)
+      // Extract body content (without truncation)
       let body = "";
       if (email.payload.parts && email.payload.parts.length) {
         const textPart = email.payload.parts.find((part) => part.mimeType === "text/plain");
@@ -238,7 +237,7 @@ serve(async (req) => {
         subject,
         from,
         to,
-        body: body.substring(0, 200) + (body.length > 200 ? "..." : ""),
+        body,
         date,
         isRead: !email.labelIds.includes("UNREAD"),
         isHidden: false

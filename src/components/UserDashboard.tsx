@@ -191,7 +191,7 @@ const UserDashboard = () => {
                 </div>
                 
                 <div className="text-sm border-t border-netflix-lightgray pt-3 line-clamp-3">
-                  {email.body}
+                  {email.body.substring(0, 200) + (email.body.length > 200 ? "..." : "")}
                 </div>
               </div>
             ))}
