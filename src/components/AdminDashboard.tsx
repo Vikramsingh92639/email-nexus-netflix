@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -23,7 +22,6 @@ const AdminDashboard = () => {
   } = useData();
   const navigate = useNavigate();
 
-  // States for different forms
   const [newToken, setNewToken] = useState("");
   const [newConfig, setNewConfig] = useState<{ 
     clientId: string; 
@@ -45,19 +43,16 @@ const AdminDashboard = () => {
   const [newPassword, setNewPassword] = useState("");
   const [isAuthorizing, setIsAuthorizing] = useState(false);
 
-  // UI states
   const [activeTab, setActiveTab] = useState("tokens");
   const [error, setError] = useState("");
   const [editingConfig, setEditingConfig] = useState<string | null>(null);
 
-  // If not logged in as admin, redirect
   useEffect(() => {
     if (!admin) {
       navigate("/admin-login");
     }
   }, [admin, navigate]);
 
-  // Handle adding new access token
   const handleAddToken = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newToken.trim()) {
@@ -70,7 +65,6 @@ const AdminDashboard = () => {
     setError("");
   };
 
-  // Handle adding new Google config
   const handleAddConfig = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newConfig.clientId || !newConfig.clientSecret) {
@@ -90,7 +84,6 @@ const AdminDashboard = () => {
     setError("");
   };
 
-  // Parse JSON input for Google config
   const handleParseJson = () => {
     try {
       const parsed = JSON.parse(jsonInput);
@@ -113,7 +106,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // Update admin credentials
   const handleUpdateCredentials = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUsername.trim() || !newPassword.trim()) {
@@ -127,7 +119,6 @@ const AdminDashboard = () => {
     setError("");
   };
 
-  // Authorize with Google
   const handleAuthorizeGoogle = async (configId: string) => {
     setIsAuthorizing(true);
     setError("");
@@ -142,13 +133,11 @@ const AdminDashboard = () => {
       if (data.error) throw new Error(data.error);
       
       if (data.authUrl) {
-        // Show helpful information before opening the auth window
         toast({
           title: "Google Authorization",
           description: "For development purposes, you may see 'unverified app' warnings. These are normal in development.",
         });
         
-        // Open the authorization URL in a new window
         window.open(data.authUrl, "_blank");
         
         toast({
@@ -169,7 +158,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // Handle Google verification instructions
   const showVerificationInstructions = () => {
     toast({
       title: "Google Verification",
@@ -181,7 +169,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-netflix-black text-netflix-white">
-      {/* Header */}
       <header className="bg-netflix-gray py-4 px-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold text-netflix-red">Admin Dashboard</h1>
         <button 
@@ -193,7 +180,6 @@ const AdminDashboard = () => {
         </button>
       </header>
 
-      {/* Tab Navigation */}
       <nav className="bg-netflix-darkgray border-b border-netflix-gray">
         <div className="container mx-auto px-4">
           <div className="flex space-x-4">
@@ -241,7 +227,6 @@ const AdminDashboard = () => {
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {error && (
           <div className="bg-netflix-red bg-opacity-30 text-netflix-white p-3 rounded mb-4 max-w-4xl mx-auto netflix-fade-in">
@@ -249,12 +234,10 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Access Tokens Tab */}
         {activeTab === "tokens" && (
           <div className="max-w-4xl mx-auto netflix-fade-in">
             <h2 className="text-xl font-semibold mb-6">Manage Access Tokens</h2>
             
-            {/* Add New Token Form */}
             <div className="bg-netflix-darkgray p-6 rounded-lg mb-8 netflix-scale-in">
               <h3 className="text-lg font-medium mb-4">Create New Token</h3>
               <form onSubmit={handleAddToken} className="flex gap-2">
@@ -275,7 +258,6 @@ const AdminDashboard = () => {
               </form>
             </div>
             
-            {/* List of Tokens */}
             <div className="bg-netflix-gray rounded-lg overflow-hidden">
               <table className="w-full">
                 <thead>
@@ -340,7 +322,6 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Google OAuth Tab */}
         {activeTab === "google" && (
           <div className="max-w-4xl mx-auto netflix-fade-in">
             <h2 className="text-xl font-semibold mb-4">Google OAuth Configuration</h2>
@@ -349,11 +330,11 @@ const AdminDashboard = () => {
               <AlertCircle className="text-netflix-red h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm">
-                  Google requires verification for OAuth apps that access sensitive data. For development:
+                  For simplicity, we're using only basic Google scopes for profiles:
                 </p>
                 <ul className="list-disc pl-5 text-sm mt-2">
-                  <li>We're now requesting Gmail access (gmail.readonly scope)</li>
-                  <li>When authorizing, click <strong>Advanced</strong> and then <strong>Go to [app name]</strong></li>
+                  <li>We're using only basic profile scopes (email and profile)</li>
+                  <li>These basic scopes don't require Google verification</li>
                   <li className="mt-1">
                     <button 
                       onClick={showVerificationInstructions}
@@ -366,11 +347,9 @@ const AdminDashboard = () => {
               </div>
             </div>
             
-            {/* Add New Config Form */}
             <div className="bg-netflix-darkgray p-6 rounded-lg mb-8 netflix-scale-in">
               <h3 className="text-lg font-medium mb-4">Add New Configuration</h3>
               
-              {/* JSON Input */}
               <div className="mb-6">
                 <label className="block text-netflix-white mb-2">
                   Paste JSON Configuration
@@ -393,7 +372,6 @@ const AdminDashboard = () => {
                 </div>
               </div>
               
-              {/* Manual Input Form */}
               <form onSubmit={handleAddConfig}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
@@ -443,7 +421,6 @@ const AdminDashboard = () => {
               </form>
             </div>
             
-            {/* List of Google Configs */}
             <div className="space-y-4">
               {googleConfigs.length === 0 ? (
                 <div className="text-center text-gray-400 py-8">
@@ -530,12 +507,10 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Admin Settings Tab */}
         {activeTab === "settings" && (
           <div className="max-w-4xl mx-auto netflix-fade-in">
             <h2 className="text-xl font-semibold mb-6">Admin Account Settings</h2>
             
-            {/* Update Admin Credentials Form */}
             <div className="bg-netflix-darkgray p-6 rounded-lg netflix-scale-in">
               <h3 className="text-lg font-medium mb-4">Update Admin Credentials</h3>
               
@@ -581,7 +556,6 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Google Verification Instructions Tab */}
         {activeTab === "verification" && (
           <div className="max-w-4xl mx-auto netflix-fade-in">
             <h2 className="text-xl font-semibold mb-6">Google OAuth Setup Guide</h2>
@@ -595,7 +569,7 @@ const AdminDashboard = () => {
                   <li>Go to "APIs & Services" {">"} "OAuth consent screen"</li>
                   <li>Choose "External" user type and click "Create"</li>
                   <li>Fill in the required app information (App name, User support email, Developer contact)</li>
-                  <li>Add scopes: <code className="bg-black px-1 rounded">userinfo.email</code>, <code className="bg-black px-1 rounded">userinfo.profile</code>, and <code className="bg-black px-1 rounded">gmail.readonly</code></li>
+                  <li>Add scopes: <code className="bg-black px-1 rounded">userinfo.email</code> and <code className="bg-black px-1 rounded">userinfo.profile</code></li>
                   <li>Add test users (your Google email) if in testing</li>
                   <li>Review and publish consent screen</li>
                 </ol>
