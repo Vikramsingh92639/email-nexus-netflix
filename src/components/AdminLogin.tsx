@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "@/components/ui/use-toast";
 
 const AdminLogin = () => {
   const [username, setUsername] = useState("");
@@ -24,16 +25,21 @@ const AdminLogin = () => {
     setError("");
 
     try {
+      console.log("Attempting admin login with:", { username, password });
       const success = await adminLogin(username, password);
       
       if (success) {
+        toast({
+          title: "Login Successful",
+          description: "Welcome to the admin dashboard!",
+        });
         navigate("/admin/dashboard");
       } else {
         setError("Invalid username or password");
       }
-    } catch (err) {
-      setError("Login failed. Please try again.");
-      console.error(err);
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError("Login failed: " + (err.message || "Please try again."));
     } finally {
       setIsLoading(false);
     }

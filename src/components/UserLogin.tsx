@@ -23,20 +23,22 @@ const UserLogin = () => {
     setError("");
 
     try {
+      console.log("Attempting user login with token:", accessToken);
       const success = await login(accessToken);
       
       if (success) {
-        navigate("/dashboard");
         toast({
           title: "Login Successful",
           description: "Welcome to the Email Nexus dashboard!",
         });
+        navigate("/dashboard");
       } else {
-        // The error message will be set by the login function in AuthContext
+        // Error will be shown by the toast in the login function
+        setError("Invalid or blocked access token. Please check and try again.");
       }
     } catch (err: any) {
+      console.error("Login error:", err);
       setError("Login failed: " + (err.message || "Please try again."));
-      console.error(err);
     } finally {
       setIsLoading(false);
     }

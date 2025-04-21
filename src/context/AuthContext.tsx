@@ -49,6 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase.functions.invoke('fetch-access-tokens');
       
       if (error) {
+        console.error("Error fetching tokens:", error);
         toast({
           title: "Login Error",
           description: error.message || "Failed to fetch tokens",
@@ -58,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (!data || !data.data) {
+        console.error("No token data found:", data);
         toast({
           title: "Login Error",
           description: "No access tokens found",
@@ -70,6 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const foundToken = data.data.find((token: any) => token.token === accessToken);
       
       if (!foundToken) {
+        console.error("Token not found:", accessToken);
         toast({
           title: "Invalid Token",
           description: "The access token does not exist.",
@@ -79,6 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (foundToken.blocked) {
+        console.error("Token is blocked:", foundToken);
         toast({
           title: "Blocked Token",
           description: "This access token has been blocked by an administrator.",
@@ -120,24 +124,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Admin login
   const adminLogin = async (username: string, password: string): Promise<boolean> => {
     try {
-      // Default admin credentials if none are set
-      const defaultAdmin = { username: "admin", password: "password" };
+      // Default admin credentials
+      const defaultCredentials = { 
+        username: "Admin@Akshay", 
+        password: "Admin@Akshay" 
+      };
       
       // Try to get admin credentials from local storage
-      const storedAdmin = localStorage.getItem("adminCredentials");
-      let adminCredentials = defaultAdmin;
+      const storedAdminJSON = localStorage.getItem("adminCredentials");
+      let adminCredentials = defaultCredentials;
       
-      if (storedAdmin) {
+      if (storedAdminJSON) {
         try {
-          adminCredentials = JSON.parse(storedAdmin);
+          adminCredentials = JSON.parse(storedAdminJSON);
         } catch (err) {
           console.error("Error parsing admin credentials:", err);
           // If there's an error parsing, use the default
+          localStorage.setItem("adminCredentials", JSON.stringify(defaultCredentials));
         }
       } else {
         // Set default admin credentials if none exist
-        localStorage.setItem("adminCredentials", JSON.stringify(defaultAdmin));
+        localStorage.setItem("adminCredentials", JSON.stringify(defaultCredentials));
       }
+      
+      console.log("Checking admin credentials:", { username, password });
+      console.log("Against stored credentials:", adminCredentials);
       
       // Check credentials
       if (username === adminCredentials.username && password === adminCredentials.password) {
@@ -152,7 +163,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         
         return true;
+      } else if (username === defaultCredentials.username && password === defaultCredentials.password) {
+        // If custom credentials didn't work but default ones do, use defaults
+        setAdmin(defaultCredentials);
+        setIsAuthenticated(true);
+        setIsAdmin(true);
+        
+        // Update stored credentials to defaults
+        localStorage.setItem("adminCredentials", JSON.stringify(defaultCredentials));
+        
+        toast({
+          title: "Login Successful",
+          description: "You have successfully logged in as an administrator using default credentials.",
+        });
+        
+        return true;
       } else {
+        console.error("Invalid admin credentials");
         toast({
           title: "Login Failed",
           description: "Invalid admin credentials.",
