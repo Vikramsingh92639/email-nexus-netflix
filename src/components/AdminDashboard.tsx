@@ -135,14 +135,14 @@ const AdminDashboard = () => {
       if (data.authUrl) {
         toast({
           title: "Google Authorization",
-          description: "For development purposes, you may see 'unverified app' warnings. These are normal in development.",
+          description: "You will be asked to grant permission to access your Gmail. For development purposes, you may see 'unverified app' warnings. These are normal in development.",
         });
         
         window.open(data.authUrl, "_blank");
         
         toast({
           title: "Google Authorization Started",
-          description: "Please complete the authorization in the new window. You may need to click 'Advanced' and 'Go to (app name)' if you see an unverified app warning.",
+          description: "Please complete the authorization in the new window. If you see an unverified app warning, click 'Advanced' and 'Go to (app name)' to proceed.",
         });
       }
     } catch (err: any) {
@@ -329,12 +329,13 @@ const AdminDashboard = () => {
             <div className="bg-netflix-red bg-opacity-20 p-4 rounded-md mb-6 flex items-start">
               <AlertCircle className="text-netflix-red h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm">
-                  For simplicity, we're using only basic Google scopes for profiles:
+                <p className="text-sm font-bold">
+                  Important: This application requests Gmail access permissions
                 </p>
                 <ul className="list-disc pl-5 text-sm mt-2">
-                  <li>We're using only basic profile scopes (email and profile)</li>
-                  <li>These basic scopes don't require Google verification</li>
+                  <li>We request the <code className="bg-black px-1 py-0.5 rounded">gmail.readonly</code> scope to search and display emails</li>
+                  <li>When authorizing, you'll need to click "Advanced" and then "Go to (unsafe)" since this is a development app</li>
+                  <li>For production use, complete Google's verification process</li>
                   <li className="mt-1">
                     <button 
                       onClick={showVerificationInstructions}
@@ -569,7 +570,7 @@ const AdminDashboard = () => {
                   <li>Go to "APIs & Services" {">"} "OAuth consent screen"</li>
                   <li>Choose "External" user type and click "Create"</li>
                   <li>Fill in the required app information (App name, User support email, Developer contact)</li>
-                  <li>Add scopes: <code className="bg-black px-1 rounded">userinfo.email</code> and <code className="bg-black px-1 rounded">userinfo.profile</code></li>
+                  <li>Add scopes: <code className="bg-black px-1 rounded">userinfo.email</code>, <code className="bg-black px-1 rounded">userinfo.profile</code>, and <code className="bg-black px-1 rounded">https://www.googleapis.com/auth/gmail.readonly</code></li>
                   <li>Add test users (your Google email) if in testing</li>
                   <li>Review and publish consent screen</li>
                 </ol>
@@ -593,23 +594,25 @@ const AdminDashboard = () => {
               </div>
               
               <div>
-                <h3 className="text-lg font-medium text-netflix-red mb-3">3. Download and Use JSON</h3>
-                <ol className="list-decimal pl-5 space-y-3">
-                  <li>From the Google Cloud credentials page, click the download icon (JSON) for your OAuth client</li>
-                  <li>Use the "Paste JSON Configuration" section in the Google OAuth tab to import these credentials</li>
-                  <li>Click "Add Configuration" to save</li>
-                </ol>
-              </div>
-              
-              <div>
-                <h3 className="text-lg font-medium text-netflix-red mb-3">4. Handling Unverified App Warnings</h3>
-                <p className="mb-3">Since your app is in development and not verified by Google, users will see a warning screen during authorization. To proceed:</p>
+                <h3 className="text-lg font-medium text-netflix-red mb-3">3. Handling Unverified App Warnings</h3>
+                <p className="mb-3">Since your app is in development and not verified by Google, you'll see a warning screen during authorization. To proceed:</p>
                 <ol className="list-decimal pl-5 space-y-3">
                   <li>When you see the "App isn't verified" screen, click "Advanced"</li>
                   <li>Click "Go to [your app name] (unsafe)"</li>
+                  <li>Since you're requesting sensitive scopes (Gmail access), you may need to add your email as a test user in the OAuth consent screen</li>
                   <li>Complete the normal authorization flow</li>
                 </ol>
                 <p className="mt-3 text-sm text-gray-400">Note: For production, you'd need to complete Google's verification process.</p>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-medium text-netflix-red mb-3">4. Enable Gmail API</h3>
+                <ol className="list-decimal pl-5 space-y-3">
+                  <li>In the Google Cloud Console, go to "APIs & Services" {">"} "Library"</li>
+                  <li>Search for "Gmail API" and select it</li>
+                  <li>Click "Enable" to activate the Gmail API for your project</li>
+                  <li>Without this step, you'll get "insufficient authentication scopes" errors even with proper authorization</li>
+                </ol>
               </div>
             </div>
           </div>

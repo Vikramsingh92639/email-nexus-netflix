@@ -66,8 +66,8 @@ serve(async (req) => {
     // Use the exact same redirect URI as configured in Google Cloud Console
     const redirectUri = `https://${projectId}.supabase.co/functions/v1/google-auth-callback`;
     
-    // Use a minimal scope for testing - this will work without verification
-    const scope = encodeURIComponent('profile email');
+    // Include Gmail read-only scope along with profile and email
+    const scope = encodeURIComponent('profile email https://www.googleapis.com/auth/gmail.readonly');
     
     const authUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${encodeURIComponent(googleAuthData.client_id)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=code&access_type=offline&prompt=consent&state=${configId}`;
     
