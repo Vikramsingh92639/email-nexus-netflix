@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, Eye, EyeOff, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
+import EmailDetailSidebar from "./EmailDetailSidebar";
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
@@ -16,8 +17,9 @@ const UserDashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [searchResults, setSearchResults] = useState<Email[]>([]);
+  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // If not logged in, redirect to login
   useEffect(() => {
     if (!user) {
       navigate("/user-login");
@@ -103,12 +105,17 @@ const UserDashboard = () => {
     );
   };
 
+  const handleEmailClick = (email: Email) => {
+    setSelectedEmail(email);
+    setIsSidebarOpen(true);
+  };
+
   const displayEmails = searchResults.length > 0 ? searchResults : emails;
 
   return (
     <div className="min-h-screen bg-netflix-black text-netflix-white">
       <header className="bg-netflix-gray py-4 px-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-netflix-red">Email Nexus</h1>
+        <h1 className="text-2xl font-bold text-netflix-red">Unknown Household Access</h1>
         <button 
           onClick={logout}
           className="flex items-center text-netflix-white hover:text-netflix-red transition-colors"
@@ -157,13 +164,17 @@ const UserDashboard = () => {
             {displayEmails.filter(email => !email.isHidden).map((email, index) => (
               <div 
                 key={email.id}
-                className="bg-netflix-gray p-4 rounded-lg hover:bg-netflix-lightgray transition-colors netflix-slide-up"
+                className="bg-netflix-gray p-4 rounded-lg hover:bg-netflix-lightgray transition-colors netflix-slide-up cursor-pointer"
                 style={{ animationDelay: `${index * 0.1}s` }}
+                onClick={() => handleEmailClick(email)}
               >
                 <div className="flex justify-between items-start mb-2">
                   <div className="font-semibold">{email.subject}</div>
                   <button 
-                    onClick={() => handleToggleVisibility(email.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleVisibility(email.id);
+                    }}
                     className="text-netflix-white p-1 hover:text-netflix-red transition-colors"
                     title="Hide email"
                   >
@@ -179,7 +190,7 @@ const UserDashboard = () => {
                   {new Date(email.date).toLocaleString()}
                 </div>
                 
-                <div className="text-sm border-t border-netflix-lightgray pt-3">
+                <div className="text-sm border-t border-netflix-lightgray pt-3 line-clamp-3">
                   {email.body}
                 </div>
               </div>
@@ -192,13 +203,17 @@ const UserDashboard = () => {
                 {displayEmails.filter(email => email.isHidden).map((email, index) => (
                   <div 
                     key={email.id}
-                    className="bg-netflix-gray bg-opacity-50 p-4 rounded-lg hover:bg-netflix-lightgray transition-colors netflix-slide-up"
+                    className="bg-netflix-gray bg-opacity-50 p-4 rounded-lg hover:bg-netflix-lightgray transition-colors netflix-slide-up cursor-pointer"
                     style={{ animationDelay: `${index * 0.1}s` }}
+                    onClick={() => handleEmailClick(email)}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="font-semibold opacity-70">{email.subject}</div>
                       <button 
-                        onClick={() => handleToggleVisibility(email.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleVisibility(email.id);
+                        }}
                         className="text-netflix-white p-1 hover:text-netflix-red transition-colors"
                         title="Show email"
                       >
@@ -216,6 +231,15 @@ const UserDashboard = () => {
           </div>
         </div>
       </main>
+
+      <EmailDetailSidebar
+        email={selectedEmail}
+        isOpen={isSidebarOpen}
+        onClose={() => {
+          setIsSidebarOpen(false);
+          setSelectedEmail(null);
+        }}
+      />
     </div>
   );
 };
