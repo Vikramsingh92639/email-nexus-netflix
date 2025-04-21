@@ -3,3 +3,12 @@ project_id = "vmztmhwrsyomkohkglcv"
 
 [functions.search-emails]
 verify_jwt = true
+
+[functions.add-google-config]
+verify_jwt = true
+
+[functions.update-google-config]
+verify_jwt = true
+
+[functions.delete-google-config]
+verify_jwt = true

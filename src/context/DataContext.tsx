@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { DataContextType, User, GoogleAuthConfig, Email, Admin } from "@/types";
 import { v4 as uuidv4 } from "@/utils/uuid";
@@ -105,8 +104,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const newToken = {
         token: token,
         blocked: false,
-        description: `Token created on ${new Date().toLocaleDateString()}`, // Added the required description field
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days expiry
+        description: `Token created on ${new Date().toLocaleDateString()}`,
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       };
       
       const { data, error } = await supabase
@@ -195,50 +194,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Google Config operations
   const addGoogleConfig = async (config: Omit<GoogleAuthConfig, "id" | "isActive">) => {
     try {
-      const newConfig = {
-        client_id: config.clientId,
-        client_secret: config.clientSecret,
-        description: config.projectId,
-        active: true
-      };
+      const { error: apiError } = await supabase.functions.invoke('add-google-config', {
+        body: {
+          client_id: config.clientId,
+          client_secret: config.clientSecret,
+          description: config.projectId,
+          active: true
+        }
+      });
       
-      // First, deactivate all existing configs
-      if (newConfig.active) {
-        const { error: updateError } = await supabase
-          .from('google_auth')
-          .update({ active: false })
-          .eq('active', true);
-          
-        if (updateError) throw updateError;
-      }
+      if (apiError) throw apiError;
       
-      // Then insert the new config
-      const { data, error } = await supabase
-        .from('google_auth')
-        .insert(newConfig)
-        .select()
-        .single();
+      await fetchGoogleConfigs();
       
-      if (error) throw error;
-      
-      if (data) {
-        const formattedConfig: GoogleAuthConfig = {
-          id: data.id,
-          clientId: data.client_id,
-          clientSecret: data.client_secret,
-          projectId: data.description,
-          authUri: "https://accounts.google.com/o/oauth2/auth",
-          tokenUri: "https://oauth2.googleapis.com/token",
-          authProviderCertUrl: "https://www.googleapis.com/oauth2/v1/certs",
-          isActive: data.active || false
-        };
-        
-        setGoogleConfigs(prev => [...prev, formattedConfig]);
-        toast({
-          title: "Success",
-          description: "Google authentication configuration added successfully",
-        });
-      }
+      toast({
+        title: "Success",
+        description: "Google authentication configuration added successfully",
+      });
     } catch (error: any) {
       console.error('Error adding Google config:', error);
       toast({
@@ -258,44 +230,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (config.projectId !== undefined) updates.description = config.projectId;
       if (config.isActive !== undefined) updates.active = config.isActive;
       
-      // If activating this config, deactivate all others
-      if (updates.active) {
-        const { error: updateError } = await supabase
-          .from('google_auth')
-          .update({ active: false })
-          .neq('id', id);
-          
-        if (updateError) throw updateError;
-      }
+      const { error: apiError } = await supabase.functions.invoke('update-google-config', {
+        body: {
+          id: id,
+          updates: updates
+        }
+      });
       
-      const { error } = await supabase
-        .from('google_auth')
-        .update(updates)
-        .eq('id', id);
+      if (apiError) throw apiError;
       
-      if (error) throw error;
-      
-      setGoogleConfigs(prev => 
-        prev.map(item => {
-          if (item.id === id) {
-            const updated = { ...item };
-            if (config.clientId !== undefined) updated.clientId = config.clientId;
-            if (config.clientSecret !== undefined) updated.clientSecret = config.clientSecret;
-            if (config.projectId !== undefined) updated.projectId = config.projectId;
-            if (config.isActive !== undefined) {
-              updated.isActive = config.isActive;
-              // If this config is active, deactivate all others in the local state
-              if (config.isActive) {
-                setGoogleConfigs(prev =>
-                  prev.map(c => c.id !== id ? { ...c, isActive: false } : c)
-                );
-              }
-            }
-            return updated;
-          }
-          return item;
-        })
-      );
+      await fetchGoogleConfigs();
       
       toast({
         title: "Success",
@@ -313,12 +257,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteGoogleConfig = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('google_auth')
-        .delete()
-        .eq('id', id);
+      const { error: apiError } = await supabase.functions.invoke('delete-google-config', {
+        body: {
+          id: id
+        }
+      });
       
-      if (error) throw error;
+      if (apiError) throw apiError;
       
       setGoogleConfigs(prev => prev.filter(config => config.id !== id));
       toast({
@@ -348,7 +293,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.error) throw new Error(data.error);
       
       if (data.emails && Array.isArray(data.emails)) {
-        // Transform the API response to match our Email type
         const formattedEmails: Email[] = data.emails.map((email: any) => ({
           id: email.id,
           from: email.from,
@@ -378,13 +322,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const toggleEmailVisibility = async (id: string) => {
     try {
-      // Find the email and get its current hidden state
       const email = emails.find(e => e.id === id);
       if (!email) return;
       
       const newHiddenState = !email.isHidden;
       
-      // Update in Supabase
       const { error } = await supabase
         .from('emails')
         .update({ hidden: newHiddenState })
@@ -392,7 +334,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error;
       
-      // Update local state
       setEmails(prev => 
         prev.map(email => 
           email.id === id ? { ...email, isHidden: newHiddenState } : email
@@ -408,7 +349,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Admin credentials update
   const updateAdminCredentials = (username: string, password: string) => {
     const updatedAdmin: Admin = { username, password };
     localStorage.setItem("adminCredentials", JSON.stringify(updatedAdmin));
