@@ -6,7 +6,7 @@ const LoginSelection = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-netflix-black netflix-gradient">
       <div className="max-w-md w-full px-6 py-8 netflix-scale-in">
-        <h1 className="text-4xl font-bold text-netflix-white text-center mb-8">Email Nexus</h1>
+        <h1 className="text-4xl font-bold text-netflix-white text-center mb-8">Unknown Household Access</h1>
         
         <div className="space-y-6">
           <Link to="/user-login" className="block w-full">

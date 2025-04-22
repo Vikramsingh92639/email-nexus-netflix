@@ -62,7 +62,7 @@ const EmailDetailSidebar = ({ email, isOpen, onClose }: EmailDetailSidebarProps)
             {/* Email Body */}
             <div className="border-t pt-6">
               <p className="text-sm font-medium text-gray-500 mb-4">Message:</p>
-              <div className="prose prose-sm max-w-none bg-white rounded-lg p-4">
+              <div className="prose prose-sm max-w-none bg-white rounded-lg p-6 shadow-sm">
                 <div className="whitespace-pre-wrap text-base text-gray-800">
                   {email.body}
                 </div>
