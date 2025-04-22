@@ -28,8 +28,8 @@ const UserLogin = () => {
       
       if (success) {
         toast({
-          title: "Login Successful",
-          description: "Welcome to the Email Nexus dashboard!",
+          title: "Welcome to Unknown Household Access",
+          description: "You have successfully logged in to your dashboard.",
         });
         navigate("/dashboard");
       } else {

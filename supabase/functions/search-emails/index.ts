@@ -142,8 +142,9 @@ serve(async (req) => {
       }
     }
     
-    // Use the access token to fetch emails with full message scope
-    const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?q=from:" + encodeURIComponent(searchEmail), {
+    // Use the access token to fetch emails - search the full inbox for the sender
+    // Modified to use search within inbox rather than just from: query
+    const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?q=in:inbox from:" + encodeURIComponent(searchEmail), {
       headers: {
         Authorization: `Bearer ${googleAuthData.access_token}`,
       },
@@ -194,8 +195,8 @@ serve(async (req) => {
       );
     }
     
-    // Fetch details for each message (limited to first 10 for performance)
-    const emailPromises = messagesData.messages.slice(0, 10).map(async (message) => {
+    // Fetch details for each message (increased to 20 for better inbox coverage)
+    const emailPromises = messagesData.messages.slice(0, 20).map(async (message) => {
       const msgResponse = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=full`, {
         headers: {
           Authorization: `Bearer ${googleAuthData.access_token}`,
@@ -214,7 +215,7 @@ serve(async (req) => {
     const validEmails = emailDetails.filter(email => email !== null);
     
     // Process and format the emails with complete content
-    const formattedEmails = validEmails.map(email => {
+    let formattedEmails = validEmails.map(email => {
       // Extract headers
       const headers = email.payload.headers;
       const subject = headers.find((h) => h.name === "Subject")?.value || "No Subject";
@@ -225,9 +226,19 @@ serve(async (req) => {
       // Extract complete body content without truncation
       let body = "";
       if (email.payload.parts && email.payload.parts.length) {
+        // Try to find text/plain part first
         const textPart = email.payload.parts.find((part) => part.mimeType === "text/plain");
         if (textPart && textPart.body.data) {
           body = atob(textPart.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+        } 
+        // If not found, try to find HTML part
+        else {
+          const htmlPart = email.payload.parts.find((part) => part.mimeType === "text/html");
+          if (htmlPart && htmlPart.body.data) {
+            const htmlContent = atob(htmlPart.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+            // Simple HTML to text conversion
+            body = htmlContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+          }
         }
       } else if (email.payload.body && email.payload.body.data) {
         body = atob(email.payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
@@ -243,6 +254,11 @@ serve(async (req) => {
         isRead: !email.labelIds.includes("UNREAD"),
         isHidden: false
       };
+    });
+    
+    // Sort emails by date - newest first
+    formattedEmails = formattedEmails.sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
     
     // Store emails in Supabase

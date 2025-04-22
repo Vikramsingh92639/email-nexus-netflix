@@ -3,7 +3,7 @@ import React from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Email } from "@/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mail, Clock, User } from "lucide-react";
+import { Mail, Clock, User, Download } from "lucide-react";
 
 interface EmailDetailSidebarProps {
   email: Email | null;
@@ -14,11 +14,42 @@ interface EmailDetailSidebarProps {
 const EmailDetailSidebar = ({ email, isOpen, onClose }: EmailDetailSidebarProps) => {
   if (!email) return null;
 
+  const handleDownload = () => {
+    // Create email content in text format
+    const emailContent = `
+From: ${email.from}
+To: ${email.to}
+Subject: ${email.subject}
+Date: ${new Date(email.date).toLocaleString()}
+
+${email.body}
+    `.trim();
+
+    // Create a blob and download it
+    const blob = new Blob([emailContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `email-${email.id.substring(0, 8)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="w-[90%] sm:w-[600px]">
-        <SheetHeader className="border-b pb-4">
+        <SheetHeader className="border-b pb-4 flex flex-row justify-between items-center">
           <SheetTitle className="text-xl font-bold text-gray-800">{email.subject}</SheetTitle>
+          <button 
+            onClick={handleDownload}
+            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors gap-1"
+            title="Download email"
+          >
+            <Download className="h-5 w-5" />
+            <span className="text-sm font-medium">Download</span>
+          </button>
         </SheetHeader>
         <ScrollArea className="h-[calc(100vh-8rem)] mt-6">
           <div className="space-y-6">

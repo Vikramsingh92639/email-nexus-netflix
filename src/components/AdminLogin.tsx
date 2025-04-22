@@ -30,8 +30,8 @@ const AdminLogin = () => {
       
       if (success) {
         toast({
-          title: "Login Successful",
-          description: "Welcome to the admin dashboard!",
+          title: "Welcome to Unknown Household Access",
+          description: "You have successfully logged in to the admin dashboard.",
         });
         navigate("/admin/dashboard");
       } else {
