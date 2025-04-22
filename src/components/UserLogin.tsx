@@ -3,11 +3,14 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/components/ui/use-toast";
+import { Eye, EyeOff } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const UserLogin = () => {
   const [accessToken, setAccessToken] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showToken, setShowToken] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -45,49 +48,65 @@ const UserLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-netflix-black netflix-gradient">
-      <div className="max-w-md w-full px-6 py-8 bg-netflix-gray rounded-lg shadow-xl netflix-scale-in">
-        <h1 className="text-3xl font-bold text-netflix-white text-center mb-6">User Login</h1>
-        
-        {error && (
-          <div className="bg-netflix-red bg-opacity-30 text-netflix-white p-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-        
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="accessToken" className="block text-netflix-white mb-2">
-              Access Token
-            </label>
-            <input
-              id="accessToken"
-              type="text"
-              value={accessToken}
-              onChange={(e) => setAccessToken(e.target.value)}
-              placeholder="Enter your access token"
-              className="netflix-input w-full"
-              disabled={isLoading}
-            />
-          </div>
-          
-          <button 
-            type="submit" 
-            className="netflix-button w-full py-3"
-            disabled={isLoading}
-          >
-            {isLoading ? "Logging in..." : "Login"}
-          </button>
-          
-          <div className="text-center">
-            <a 
-              href="/" 
-              className="text-netflix-white hover:text-netflix-red transition-colors"
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black to-gray-900">
+      <div className="max-w-md w-full px-8 py-10 rounded-lg bg-black/40 backdrop-blur-sm border border-gray-800">
+        <div className="space-y-8">
+          <div className="flex gap-8 text-2xl font-medium border-b border-gray-800">
+            <Link 
+              to="/user-login" 
+              className="pb-4 text-white border-b-2 border-netflix-red"
             >
-              Back to role selection
-            </a>
+              User Login
+            </Link>
+            <Link 
+              to="/admin-login" 
+              className="pb-4 text-gray-400 hover:text-white transition-colors"
+            >
+              Admin Login
+            </Link>
           </div>
-        </form>
+          
+          {error && (
+            <div className="bg-netflix-red/10 border border-netflix-red/20 text-netflix-red p-3 rounded">
+              {error}
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="flex flex-col space-y-2">
+              <label className="text-gray-400">Access Token</label>
+              <div className="relative">
+                <input
+                  type={showToken ? "text" : "password"}
+                  value={accessToken}
+                  onChange={(e) => setAccessToken(e.target.value)}
+                  placeholder="Enter your access token"
+                  className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red"
+                  disabled={isLoading}
+                />
+                <button 
+                  type="button"
+                  onClick={() => setShowToken(!showToken)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  {showToken ? (
+                    <EyeOff className="w-5 h-5 text-gray-500" />
+                  ) : (
+                    <Eye className="w-5 h-5 text-gray-500" />
+                  )}
+                </button>
+              </div>
+            </div>
+            
+            <button 
+              type="submit" 
+              className="w-full bg-netflix-red hover:bg-netflix-red/90 text-white py-3 rounded-lg transition-colors"
+              disabled={isLoading}
+            >
+              {isLoading ? "Logging in..." : "Login as User"}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

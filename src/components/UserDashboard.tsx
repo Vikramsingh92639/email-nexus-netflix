@@ -7,6 +7,14 @@ import { Search, Eye, EyeOff, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import EmailDetailSidebar from "./EmailDetailSidebar";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from "@/components/ui/pagination";
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
@@ -19,12 +27,24 @@ const UserDashboard = () => {
   const [searchResults, setSearchResults] = useState<Email[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const emailsPerPage = 10;
 
   useEffect(() => {
     if (!user) {
       navigate("/user-login");
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    if (user) {
+      toast({
+        title: "Welcome to Unknown Household Access",
+        description: "You have successfully logged in to your dashboard.",
+        className: "fixed top-4 left-4 z-50"
+      });
+    }
+  }, [user]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,6 +132,11 @@ const UserDashboard = () => {
 
   const displayEmails = searchResults.length > 0 ? searchResults : emails;
 
+  const indexOfLastEmail = currentPage * emailsPerPage;
+  const indexOfFirstEmail = indexOfLastEmail - emailsPerPage;
+  const currentEmails = displayEmails.slice(indexOfFirstEmail, indexOfLastEmail);
+  const totalPages = Math.ceil(displayEmails.length / emailsPerPage);
+
   return (
     <div className="min-h-screen bg-netflix-black text-netflix-white">
       <header className="bg-netflix-gray py-4 px-6 flex justify-between items-center">
@@ -161,7 +186,7 @@ const UserDashboard = () => {
               {displayEmails.length ? "Search Results" : "No emails found"}
             </h2>
             
-            {displayEmails.filter(email => !email.isHidden).map((email, index) => (
+            {currentEmails.map((email, index) => (
               <div 
                 key={email.id}
                 className="bg-netflix-gray p-4 rounded-lg hover:bg-netflix-lightgray transition-colors netflix-slide-up cursor-pointer"
@@ -227,6 +252,38 @@ const UserDashboard = () => {
                   </div>
                 ))}
               </div>
+            )}
+            
+            {totalPages > 1 && (
+              <Pagination className="my-8">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      className={currentPage === 1 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => setCurrentPage(page)}
+                        isActive={currentPage === page}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      className={currentPage === totalPages ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             )}
           </div>
         </div>

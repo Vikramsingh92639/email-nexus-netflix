@@ -4,25 +4,42 @@ import { Link } from 'react-router-dom';
 
 const LoginSelection = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-netflix-black netflix-gradient">
-      <div className="max-w-md w-full px-6 py-8 netflix-scale-in">
-        <h1 className="text-4xl font-bold text-netflix-white text-center mb-8">Unknown Household Access</h1>
-        
-        <div className="space-y-6">
-          <Link to="/user-login" className="block w-full">
-            <button className="netflix-button w-full py-3 text-lg stagger-delay-1 netflix-fade-in">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black to-gray-900">
+      <div className="max-w-md w-full px-8 py-10 rounded-lg bg-black/40 backdrop-blur-sm border border-gray-800">
+        <div className="space-y-8">
+          <div className="flex gap-8 text-2xl font-medium border-b border-gray-800">
+            <Link 
+              to="/user-login" 
+              className="pb-4 text-white border-b-2 border-netflix-red"
+            >
               User Login
-            </button>
-          </Link>
-          
-          <Link to="/admin-login" className="block w-full">
-            <button className="netflix-button w-full py-3 text-lg stagger-delay-2 netflix-fade-in">
+            </Link>
+            <Link 
+              to="/admin-login" 
+              className="pb-4 text-gray-400 hover:text-white transition-colors"
+            >
               Admin Login
-            </button>
-          </Link>
+            </Link>
+          </div>
           
-          <div className="text-netflix-white text-center mt-4 opacity-80 stagger-delay-3 netflix-fade-in">
-            Choose your role to continue
+          <div className="space-y-6">
+            <div className="flex flex-col space-y-2">
+              <label className="text-gray-400">Access Token</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Enter your access token"
+                  className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red"
+                />
+                <button className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <Eye className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+            </div>
+            
+            <button className="w-full bg-netflix-red hover:bg-netflix-red/90 text-white py-3 rounded-lg transition-colors">
+              Login as User
+            </button>
           </div>
         </div>
       </div>
