@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
@@ -159,7 +160,8 @@ const UserDashboard = () => {
     }
   };
 
-  const handleToggleVisibility = async (id: string) => {
+  const handleToggleVisibility = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Stop event from bubbling up
     toggleEmailVisibility(id);
     setSearchResults(prev => 
       prev.map(email => 
@@ -279,15 +281,12 @@ const UserDashboard = () => {
                 <div className="flex justify-between items-start mb-2">
                   <div className="font-semibold">{email.subject}</div>
                   <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleVisibility(email.id);
-                    }}
+                    onClick={(e) => handleToggleVisibility(email.id, e)}
                     variant="outline"
                     size="sm"
                     className={`absolute top-2 right-2 z-10 ${
                       email.isHidden 
-                        ? 'bg-green-600 hover:bg-green-700 text-white border-green-500'
+                        ? 'bg-green-600 hover:bg-green-700 text-white border-green-500 blur-none'
                         : 'bg-red-600 hover:bg-red-700 text-white border-red-500'
                     }`}
                     title={email.isHidden ? "Show email" : "Hide email"}
@@ -295,7 +294,7 @@ const UserDashboard = () => {
                     {email.isHidden ? (
                       <Eye className="h-4 w-4" />
                     ) : (
-                      <Eye className="h-4 w-4" />
+                      <EyeOff className="h-4 w-4" />
                     )}
                     <span className="ml-2">{email.isHidden ? "Show" : "Hide"}</span>
                   </Button>

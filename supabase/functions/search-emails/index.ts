@@ -160,7 +160,6 @@ serve(async (req) => {
     }
     
     // Use the access token to fetch emails - search the full inbox for the sender
-    // Modified to use search within inbox rather than just from: query
     const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?q=in:inbox from:" + encodeURIComponent(searchEmail), {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -245,17 +244,17 @@ serve(async (req) => {
       // Extract complete body content without truncation
       let body = "";
       if (email.payload.parts && email.payload.parts.length) {
-        // Try to find text/plain part first
-        const textPart = email.payload.parts.find((part) => part.mimeType === "text/plain");
-        if (textPart && textPart.body.data) {
-          body = atob(textPart.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-        } 
-        // If not found, try to find HTML part
+        // Try to find HTML part first to preserve formatting and links
+        const htmlPart = email.payload.parts.find((part) => part.mimeType === "text/html");
+        if (htmlPart && htmlPart.body.data) {
+          const htmlContent = atob(htmlPart.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+          body = htmlContent;
+        }
+        // If not found, try to find text/plain part
         else {
-          const htmlPart = email.payload.parts.find((part) => part.mimeType === "text/html");
-          if (htmlPart && htmlPart.body.data) {
-            const htmlContent = atob(htmlPart.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-            body = htmlContent;
+          const textPart = email.payload.parts.find((part) => part.mimeType === "text/plain");
+          if (textPart && textPart.body.data) {
+            body = atob(textPart.body.data.replace(/-/g, '+').replace(/_/g, '/'));
           }
         }
       } else if (email.payload.body && email.payload.body.data) {
@@ -279,26 +278,31 @@ serve(async (req) => {
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
     
-    // Store emails in Supabase
-    if (formattedEmails.length > 0) {
+    // Store emails in Supabase BUT don't slow down the response
+    const storeEmails = async () => {
       for (const email of formattedEmails) {
-        const { error: insertError } = await supabaseAdmin
-          .from("emails")
-          .upsert({
-            id: email.id,
-            from_address: email.from,
-            to_address: email.to,
-            subject: email.subject,
-            snippet: email.body,  // Store the full email body
-            date: new Date(email.date).toISOString(),
-            read: email.isRead,
-            hidden: email.isHidden
-          }, { onConflict: 'id' });
-          
-        if (insertError) {
+        try {
+          await supabaseAdmin
+            .from("emails")
+            .upsert({
+              id: email.id,
+              from_address: email.from,
+              to_address: email.to,
+              subject: email.subject,
+              snippet: email.body,  // Store the full email body
+              date: new Date(email.date).toISOString(),
+              read: email.isRead,
+              hidden: email.isHidden
+            }, { onConflict: 'id' });
+        } catch (insertError) {
           console.error("Error storing email:", insertError);
         }
       }
+    };
+    
+    // Start the storage process but don't await it - we'll return the response immediately
+    if (formattedEmails.length > 0) {
+      storeEmails().catch(e => console.error("Background email storage error:", e));
     }
     
     return new Response(

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { DataContextType, User, GoogleAuthConfig, Email, Admin } from "@/types";
 import { v4 as uuidv4 } from "@/utils/uuid";
@@ -299,7 +300,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Email operations
   const searchEmails = async (emailId: string): Promise<Email[]> => {
     try {
-      setEmails([]);
       const { data, error } = await supabase.functions.invoke('search-emails', {
         body: { searchEmail: emailId }
       });
@@ -320,7 +320,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isHidden: false
         }));
         
-        setEmails(formattedEmails);
         return formattedEmails;
       }
       
@@ -338,23 +337,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const toggleEmailVisibility = async (id: string) => {
     try {
+      // Find the email in both the emails state and update it
+      setEmails(prev => {
+        const updatedEmails = prev.map(email => {
+          if (email.id === id) {
+            // Toggle the isHidden property
+            return { ...email, isHidden: !email.isHidden };
+          }
+          return email;
+        });
+        return updatedEmails;
+      });
+      
+      // Find the current email to get its current hidden state
       const email = emails.find(e => e.id === id);
-      if (!email) return;
+      const newHiddenState = email ? !email.isHidden : true; // Default to true if not found
       
-      const newHiddenState = !email.isHidden;
-      
-      const { error } = await supabase
+      // Update in the database asynchronously
+      await supabase
         .from('emails')
         .update({ hidden: newHiddenState })
         .eq('id', id);
-      
-      if (error) throw error;
-      
-      setEmails(prev => 
-        prev.map(email => 
-          email.id === id ? { ...email, isHidden: newHiddenState } : email
-        )
-      );
+        
     } catch (error: any) {
       console.error('Error toggling email visibility:', error);
       toast({

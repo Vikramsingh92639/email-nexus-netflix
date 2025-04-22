@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Email } from "@/types";
@@ -16,29 +15,37 @@ const EmailDetailSidebar = ({ email, isOpen, onClose }: EmailDetailSidebarProps)
   if (!email) return null;
 
   const cleanEmailBody = (body: string) => {
-    // Remove style tags and their content
-    let cleanedBody = body.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    // First preserve all links with their attributes
+    let cleanedBody = body;
     
-    // Preserve links and buttons with their href attributes
+    // Replace <a> tags with properly formatted ones but keep the href attributes
     cleanedBody = cleanedBody.replace(/<a\s+(?:[^>]*?\s+)?href=(["'])(.*?)\1/gi, 
       (match, quote, url) => `<a href=${quote}${url}${quote} class="text-blue-400 hover:text-blue-300 underline"`
     );
     
-    // Remove other HTML tags but preserve links
-    cleanedBody = cleanedBody.replace(/<(?!\/?a(?:\s|>))[^>]+>/g, ' ');
+    // Replace <button> tags with properly formatted ones but keep onclick attributes if they exist
+    cleanedBody = cleanedBody.replace(/<button\s+(?:[^>]*?\s+)?/gi, 
+      '<button class="bg-blue-500 hover:bg-blue-600 text-white rounded px-4 py-2 my-2" '
+    );
     
-    // Clean up HTML entities and extra spaces
-    return cleanedBody
-      .replace(/&nbsp;/g, ' ')
-      .replace(/\s+/g, ' ')
-      .replace(/@media[^{]*{[^}]*}/g, '')
-      .replace(/{[^}]*}/g, '')
-      .replace(/\.[a-zA-Z-]+\s*{[^}]*}/g, '')
-      .replace(/style="[^"]*"/g, '')
-      .replace(/class="[^"]*"/g, '')
-      .replace(/&[^;]+;/g, '')
-      .replace(/\.+/g, '.')
-      .trim();
+    // Clean all style tags
+    cleanedBody = cleanedBody.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    
+    // Remove all CSS rules
+    cleanedBody = cleanedBody.replace(/@media[^{]*{[^}]*}/g, '');
+    cleanedBody = cleanedBody.replace(/{[^}]*}/g, '');
+    cleanedBody = cleanedBody.replace(/\.[a-zA-Z-]+\s*{[^}]*}/g, '');
+    
+    // Remove inline styles
+    cleanedBody = cleanedBody.replace(/style="[^"]*"/g, '');
+    
+    // Replace HTML entities
+    cleanedBody = cleanedBody.replace(/&nbsp;/g, ' ');
+    
+    // Clean up excessive whitespace
+    cleanedBody = cleanedBody.replace(/\s+/g, ' ');
+    
+    return cleanedBody.trim();
   };
 
   const handleDownload = () => {
@@ -130,4 +137,3 @@ ${cleanedBody}
 };
 
 export default EmailDetailSidebar;
-
