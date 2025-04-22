@@ -1,8 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 
 const LoginSelection = () => {
+  const [accessToken, setAccessToken] = useState('');
+  const [showToken, setShowToken] = useState(false);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black to-gray-900">
       <div className="max-w-md w-full px-8 py-10 rounded-lg bg-black/40 backdrop-blur-sm border border-gray-800">
@@ -27,12 +31,22 @@ const LoginSelection = () => {
               <label className="text-gray-400">Access Token</label>
               <div className="relative">
                 <input
-                  type="text"
+                  type={showToken ? "text" : "password"}
+                  value={accessToken}
+                  onChange={(e) => setAccessToken(e.target.value)}
                   placeholder="Enter your access token"
                   className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red"
                 />
-                <button className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <Eye className="w-5 h-5 text-gray-500" />
+                <button 
+                  type="button"
+                  onClick={() => setShowToken(!showToken)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  {showToken ? (
+                    <EyeOff className="w-5 h-5 text-gray-500" />
+                  ) : (
+                    <Eye className="w-5 h-5 text-gray-500" />
+                  )}
                 </button>
               </div>
             </div>
