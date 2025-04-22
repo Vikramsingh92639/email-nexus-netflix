@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
@@ -159,13 +158,18 @@ const UserDashboard = () => {
     }
   };
 
-  const handleToggleVisibility = (id: string) => {
+  const handleToggleVisibility = async (id: string) => {
     toggleEmailVisibility(id);
     setSearchResults(prev => 
       prev.map(email => 
         email.id === id ? { ...email, isHidden: !email.isHidden } : email
       )
     );
+    
+    toast({
+      title: "Email visibility updated",
+      description: "Email visibility has been toggled successfully.",
+    });
   };
 
   const handleEmailClick = (email: Email) => {
@@ -238,16 +242,36 @@ const UserDashboard = () => {
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold mb-4">
-              {displayEmails.length ? 
-                `Showing ${indexOfFirstEmail + 1}-${Math.min(indexOfLastEmail, displayEmails.length)} of ${displayEmails.length} emails` 
-                : "No emails found"}
-            </h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">
+                {displayEmails.length ? 
+                  `Showing ${indexOfFirstEmail + 1}-${Math.min(indexOfLastEmail, displayEmails.length)} of ${displayEmails.length} emails` 
+                  : "No emails found"}
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="flex items-center px-4 py-2 bg-netflix-gray rounded hover:bg-netflix-lightgray transition-colors disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="flex items-center px-4 py-2 bg-netflix-gray rounded hover:bg-netflix-lightgray transition-colors disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
             
             {currentEmails.map((email, index) => (
               <div 
                 key={email.id}
-                className="bg-netflix-gray p-4 rounded-lg hover:bg-netflix-lightgray transition-colors netflix-slide-up cursor-pointer"
+                className={`bg-netflix-gray p-4 rounded-lg hover:bg-netflix-lightgray transition-colors netflix-slide-up cursor-pointer ${
+                  email.isHidden ? 'opacity-50 blur-sm hover:blur-none transition-all duration-200' : ''
+                }`}
                 style={{ animationDelay: `${index * 0.1}s` }}
                 onClick={() => handleEmailClick(email)}
               >
@@ -279,8 +303,7 @@ const UserDashboard = () => {
               </div>
             ))}
 
-            {/* Always show pagination if there are results */}
-            {displayEmails.length > 0 && (
+            {displayEmails.length > emailsPerPage && (
               <div className="flex justify-center mt-8">
                 <Pagination>
                   <PaginationContent>

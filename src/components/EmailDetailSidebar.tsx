@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Email } from "@/types";
@@ -35,30 +34,23 @@ ${email.body}
     URL.revokeObjectURL(url);
   };
 
-  // Enhanced email body cleaning function
   const cleanEmailBody = (body: string) => {
-    // Remove all CSS styles (both inline and blocks)
-    const withoutCSS = body.replace(/@media[^{]*{[^}]*}/g, '')
-                           .replace(/{[^{}]*}/g, '')
-                           .replace(/style="[^"]*"/g, '')
-                           .replace(/class="[^"]*"/g, '');
+    const withoutHTML = body.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                           .replace(/<[^>]+>/g, ' ')
+                           .replace(/&nbsp;/g, ' ')
+                           .replace(/\s+/g, ' ')
+                           .trim();
     
-    // Remove HTML tags more thoroughly
-    const withoutHTML = withoutCSS.replace(/<[^>]*>/g, ' ');
+    const withoutCSS = withoutHTML.replace(/@media[^{]*{[^}]*}/g, '')
+                                 .replace(/{[^}]*}/g, '')
+                                 .replace(/\.[a-zA-Z-]+\s*{[^}]*}/g, '')
+                                 .replace(/style="[^"]*"/g, '')
+                                 .replace(/class="[^"]*"/g, '');
     
-    // Remove CSS property declarations
-    const withoutCSSProps = withoutHTML.replace(/\.[a-zA-Z-_]+\s*{[^}]*}/g, '')
-                                      .replace(/[a-zA-Z-_]+\s*:\s*[^;]+;/g, '');
-    
-    // Clean up multiple spaces, line breaks, and other formatting
-    const cleanText = withoutCSSProps
-      .replace(/\s+/g, ' ')
-      .replace(/\n+/g, '\n')
-      .replace(/-->/g, '')
-      .replace(/\.\s*\./g, '.')
-      .trim();
-    
-    return cleanText;
+    return withoutCSS.replace(/&[^;]+;/g, '')
+                    .replace(/\s+/g, ' ')
+                    .replace(/\.+/g, '.')
+                    .trim();
   };
 
   return (
