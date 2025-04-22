@@ -269,28 +269,35 @@ const UserDashboard = () => {
             {currentEmails.map((email, index) => (
               <div 
                 key={email.id}
-                className={`bg-netflix-gray p-4 rounded-lg hover:bg-netflix-lightgray transition-colors netflix-slide-up cursor-pointer ${
-                  email.isHidden ? 'opacity-50 blur-sm hover:blur-none transition-all duration-200' : ''
+                className={`bg-netflix-gray p-4 rounded-lg hover:bg-netflix-lightgray transition-colors netflix-slide-up relative ${
+                  email.isHidden ? 'blur-[6px] hover:blur-[6px]' : ''
                 }`}
                 style={{ animationDelay: `${index * 0.1}s` }}
-                onClick={() => handleEmailClick(email)}
+                onClick={() => !email.isHidden && handleEmailClick(email)}
               >
                 <div className="flex justify-between items-start mb-2">
                   <div className="font-semibold">{email.subject}</div>
-                  <button 
+                  <Button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleToggleVisibility(email.id);
                     }}
-                    className="text-netflix-white p-1 hover:text-netflix-red transition-colors"
+                    variant="outline"
+                    size="sm"
+                    className={`absolute top-2 right-2 z-10 ${
+                      email.isHidden 
+                        ? 'bg-green-600 hover:bg-green-700 text-white border-green-500'
+                        : 'bg-red-600 hover:bg-red-700 text-white border-red-500'
+                    }`}
                     title={email.isHidden ? "Show email" : "Hide email"}
                   >
                     {email.isHidden ? (
-                      <Eye className="h-5 w-5" />
+                      <Eye className="h-4 w-4" />
                     ) : (
-                      <EyeOff className="h-5 w-5" />
+                      <Eye className="h-4 w-4" />
                     )}
-                  </button>
+                    <span className="ml-2">{email.isHidden ? "Show" : "Hide"}</span>
+                  </Button>
                 </div>
                 
                 <div className="text-sm text-gray-300 mb-2">
