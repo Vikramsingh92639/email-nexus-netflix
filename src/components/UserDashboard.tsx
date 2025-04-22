@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
@@ -61,49 +62,89 @@ const UserDashboard = () => {
     setSearchResults([]);
 
     try {
-      const { data, error } = await supabase.functions.invoke('search-emails', {
-        body: { searchEmail: searchEmail.trim() }
-      });
-
-      if (error) {
-        throw new Error(error.message || "Failed to search emails");
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      if (data.emails && Array.isArray(data.emails)) {
-        const formattedEmails: Email[] = data.emails.map((email: any) => ({
-          id: email.id,
-          from: email.from,
-          to: email.to,
-          subject: email.subject,
-          body: email.body,
-          date: email.date,
-          isRead: email.isRead,
-          isHidden: false
-        }));
-
-        setSearchResults(formattedEmails);
-        
-        if (formattedEmails.length === 0) {
-          toast({
-            title: "No emails found",
-            description: `No emails from ${searchEmail} were found.`,
+      // Add retry mechanism with exponential backoff
+      const maxRetries = 3;
+      let retryCount = 0;
+      let success = false;
+      
+      while (retryCount < maxRetries && !success) {
+        try {
+          const { data, error } = await supabase.functions.invoke('search-emails', {
+            body: { searchEmail: searchEmail.trim() }
           });
-        } else {
-          toast({
-            title: "Emails retrieved",
-            description: `Found ${formattedEmails.length} emails from ${searchEmail}.`,
-          });
+          
+          if (error) {
+            throw new Error(error.message || "Failed to search emails");
+          }
+          
+          if (data.error) {
+            // Check if it's an authorization error
+            if (data.error.includes("token expired") || data.error.includes("reauthorize")) {
+              // Show a more user-friendly message
+              toast({
+                title: "Authorization needed",
+                description: "Please contact an admin to refresh the Google authorization.",
+                variant: "destructive"
+              });
+              throw new Error(data.error);
+            } else {
+              throw new Error(data.error);
+            }
+          }
+          
+          if (data.emails && Array.isArray(data.emails)) {
+            const formattedEmails: Email[] = data.emails.map((email: any) => ({
+              id: email.id,
+              from: email.from,
+              to: email.to,
+              subject: email.subject,
+              body: email.body,
+              date: email.date,
+              isRead: email.isRead,
+              isHidden: false
+            }));
+            
+            setSearchResults(formattedEmails);
+            
+            if (formattedEmails.length === 0) {
+              toast({
+                title: "No emails found",
+                description: `No emails from ${searchEmail} were found.`,
+              });
+            } else {
+              toast({
+                title: "Emails retrieved",
+                description: `Found ${formattedEmails.length} emails from ${searchEmail}.`,
+              });
+            }
+          } else {
+            setSearchResults([]);
+            toast({
+              title: "No emails found",
+              description: data.message || `No emails from ${searchEmail} were found.`,
+            });
+          }
+          
+          success = true;
+        } catch (retryError: any) {
+          retryCount++;
+          if (retryCount >= maxRetries) {
+            throw retryError;
+          }
+          
+          const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, delay));
+          
+          // Show retry toast
+          if (retryError.message.includes("token expired") || retryError.message.includes("reauthorize")) {
+            // Don't show retry toast for auth errors as we've already shown a specific message
+          } else {
+            toast({
+              title: `Retrying (${retryCount}/${maxRetries})`,
+              description: "Trying to connect again...",
+            });
+          }
         }
-      } else {
-        setSearchResults([]);
-        toast({
-          title: "No emails found",
-          description: data.message || `No emails from ${searchEmail} were found.`,
-        });
       }
     } catch (err: any) {
       console.error("Search error:", err);
@@ -238,7 +279,8 @@ const UserDashboard = () => {
               </div>
             ))}
 
-            {totalPages > 1 && (
+            {/* Always show pagination if there are results */}
+            {displayEmails.length > 0 && (
               <div className="flex justify-center mt-8">
                 <Pagination>
                   <PaginationContent>

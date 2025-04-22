@@ -35,17 +35,29 @@ ${email.body}
     URL.revokeObjectURL(url);
   };
 
-  // Clean the email body by removing HTML and CSS
+  // Enhanced email body cleaning function
   const cleanEmailBody = (body: string) => {
-    // Remove CSS and media queries
-    const withoutCSS = body.replace(/@media[^{]*{[^}]*}/g, '');
-    // Remove HTML tags
-    const withoutHTML = withoutCSS.replace(/<[^>]*>/g, '');
-    // Remove multiple spaces and newlines
-    const cleanText = withoutHTML
+    // Remove all CSS styles (both inline and blocks)
+    const withoutCSS = body.replace(/@media[^{]*{[^}]*}/g, '')
+                           .replace(/{[^{}]*}/g, '')
+                           .replace(/style="[^"]*"/g, '')
+                           .replace(/class="[^"]*"/g, '');
+    
+    // Remove HTML tags more thoroughly
+    const withoutHTML = withoutCSS.replace(/<[^>]*>/g, ' ');
+    
+    // Remove CSS property declarations
+    const withoutCSSProps = withoutHTML.replace(/\.[a-zA-Z-_]+\s*{[^}]*}/g, '')
+                                      .replace(/[a-zA-Z-_]+\s*:\s*[^;]+;/g, '');
+    
+    // Clean up multiple spaces, line breaks, and other formatting
+    const cleanText = withoutCSSProps
       .replace(/\s+/g, ' ')
       .replace(/\n+/g, '\n')
+      .replace(/-->/g, '')
+      .replace(/\.\s*\./g, '.')
       .trim();
+    
     return cleanText;
   };
 

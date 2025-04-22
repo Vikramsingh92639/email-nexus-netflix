@@ -62,66 +62,72 @@ serve(async (req) => {
       );
     }
 
-    // Check if we have an access token
-    if (!googleAuthData.access_token) {
-      // If we don't have an access token but we have client credentials and refresh token, try to get a new access token
-      if (googleAuthData.client_id && googleAuthData.client_secret && googleAuthData.refresh_token) {
-        try {
-          const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: new URLSearchParams({
-              client_id: googleAuthData.client_id,
-              client_secret: googleAuthData.client_secret,
-              refresh_token: googleAuthData.refresh_token,
-              grant_type: "refresh_token",
-            }),
-          });
-          
-          const tokenData = await tokenResponse.json();
-          
-          if (tokenData.access_token) {
-            // Update the access token in the database
-            const { error: updateError } = await supabaseAdmin
-              .from("google_auth")
-              .update({
-                access_token: tokenData.access_token,
-                token_expiry: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
-              })
-              .eq("id", googleAuthData.id);
-              
-            if (updateError) {
-              console.error("Error updating access token:", updateError);
-              return new Response(
-                JSON.stringify({ error: "Failed to update access token", details: updateError }),
-                { 
-                  status: 200, 
-                  headers: { ...corsHeaders, "Content-Type": "application/json" } 
-                }
-              );
-            }
+    // Enhanced token handling with auto-refresh
+    let accessToken = googleAuthData.access_token;
+    let needsRefresh = false;
+    
+    // Check if token is expired or will expire soon (within 5 minutes)
+    if (googleAuthData.token_expiry) {
+      const expiryTime = new Date(googleAuthData.token_expiry).getTime();
+      const currentTime = Date.now();
+      const fiveMinutesMs = 5 * 60 * 1000;
+      
+      if (currentTime + fiveMinutesMs >= expiryTime) {
+        needsRefresh = true;
+      }
+    } else if (!accessToken) {
+      needsRefresh = true;
+    }
+    
+    // Refresh token if needed
+    if (needsRefresh && googleAuthData.client_id && googleAuthData.client_secret && googleAuthData.refresh_token) {
+      try {
+        console.log("Refreshing access token automatically");
+        
+        const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            client_id: googleAuthData.client_id,
+            client_secret: googleAuthData.client_secret,
+            refresh_token: googleAuthData.refresh_token,
+            grant_type: "refresh_token",
+          }),
+        });
+        
+        const tokenData = await tokenResponse.json();
+        
+        if (tokenData.access_token) {
+          // Update the access token in the database
+          const { error: updateError } = await supabaseAdmin
+            .from("google_auth")
+            .update({
+              access_token: tokenData.access_token,
+              token_expiry: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
+            })
+            .eq("id", googleAuthData.id);
             
-            // Use the new access token
-            googleAuthData.access_token = tokenData.access_token;
-          } else {
-            console.error("Failed to refresh access token:", tokenData);
+          if (updateError) {
+            console.error("Error updating access token:", updateError);
             return new Response(
-              JSON.stringify({ 
-                error: "Failed to refresh access token. Please reauthorize with Google in the Admin panel."
-              }),
+              JSON.stringify({ error: "Failed to update access token", details: updateError }),
               { 
                 status: 200, 
                 headers: { ...corsHeaders, "Content-Type": "application/json" } 
               }
             );
           }
-        } catch (refreshError) {
-          console.error("Error refreshing token:", refreshError);
+          
+          // Use the new access token
+          accessToken = tokenData.access_token;
+          console.log("Successfully refreshed access token");
+        } else {
+          console.error("Failed to refresh access token:", tokenData);
           return new Response(
             JSON.stringify({ 
-              error: "Error refreshing token. Please reauthorize with Google in the Admin panel." 
+              error: "Failed to refresh access token. Please reauthorize with Google in the Admin panel."
             }),
             { 
               status: 200, 
@@ -129,24 +135,35 @@ serve(async (req) => {
             }
           );
         }
-      } else {
+      } catch (refreshError) {
+        console.error("Error refreshing token:", refreshError);
         return new Response(
           JSON.stringify({ 
-            error: "No access token available. You need to complete the Google OAuth process in the Admin panel." 
+            error: "Error refreshing token. Please reauthorize with Google in the Admin panel." 
           }),
           { 
-            status: 200,
+            status: 200, 
             headers: { ...corsHeaders, "Content-Type": "application/json" } 
           }
         );
       }
+    } else if (!accessToken) {
+      return new Response(
+        JSON.stringify({ 
+          error: "No access token available. You need to complete the Google OAuth process in the Admin panel." 
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
     }
     
     // Use the access token to fetch emails - search the full inbox for the sender
     // Modified to use search within inbox rather than just from: query
     const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?q=in:inbox from:" + encodeURIComponent(searchEmail), {
       headers: {
-        Authorization: `Bearer ${googleAuthData.access_token}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
     
@@ -156,19 +173,16 @@ serve(async (req) => {
       
       // Check if token expired
       if (response.status === 401) {
-        // Token might be expired, try to refresh if we have a refresh token
-        if (googleAuthData.refresh_token) {
-          // Similar refresh logic as above
-          return new Response(
-            JSON.stringify({ 
-              error: "Access token expired. Please try again or reauthorize in the Admin panel."
-            }),
-            { 
-              status: 200, 
-              headers: { ...corsHeaders, "Content-Type": "application/json" } 
-            }
-          );
-        }
+        // Handle 401 by suggesting reauthorization
+        return new Response(
+          JSON.stringify({ 
+            error: "Access token expired. Please try again or reauthorize in the Admin panel."
+          }),
+          { 
+            status: 200, 
+            headers: { ...corsHeaders, "Content-Type": "application/json" } 
+          }
+        );
       }
       
       return new Response(
@@ -195,20 +209,25 @@ serve(async (req) => {
       );
     }
     
-    // Fetch details for each message (increased to 20 for better inbox coverage)
+    // Fetch details for each message
     const emailPromises = messagesData.messages.slice(0, 20).map(async (message) => {
-      const msgResponse = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=full`, {
-        headers: {
-          Authorization: `Bearer ${googleAuthData.access_token}`,
-        },
-      });
-      
-      if (!msgResponse.ok) {
-        console.error(`Failed to fetch email ${message.id}`);
+      try {
+        const msgResponse = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=full`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        
+        if (!msgResponse.ok) {
+          console.error(`Failed to fetch email ${message.id}: ${msgResponse.status}`);
+          return null;
+        }
+        
+        return msgResponse.json();
+      } catch (error) {
+        console.error(`Error fetching message ${message.id}:`, error);
         return null;
       }
-      
-      return msgResponse.json();
     });
     
     const emailDetails = await Promise.all(emailPromises);
@@ -236,8 +255,7 @@ serve(async (req) => {
           const htmlPart = email.payload.parts.find((part) => part.mimeType === "text/html");
           if (htmlPart && htmlPart.body.data) {
             const htmlContent = atob(htmlPart.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-            // Simple HTML to text conversion
-            body = htmlContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+            body = htmlContent;
           }
         }
       } else if (email.payload.body && email.payload.body.data) {
