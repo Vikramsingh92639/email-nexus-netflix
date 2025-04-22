@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Email } from "@/types";
@@ -48,15 +49,43 @@ const EmailDetailSidebar = ({ email, isOpen, onClose }: EmailDetailSidebarProps)
     return cleanedBody.trim();
   };
 
+  // New function to create plain text version for download
+  const createPlainTextEmail = (htmlBody: string) => {
+    // Create a temporary DOM element
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlBody;
+    
+    // Extract links for reference
+    const links = tempDiv.querySelectorAll('a');
+    let linkReferences = '';
+    
+    if (links.length > 0) {
+      linkReferences = '\n\nLinks in this email:\n';
+      links.forEach((link, index) => {
+        linkReferences += `[${index + 1}] ${link.href}\n`;
+      });
+    }
+    
+    // Get the text content (removes HTML tags but preserves text)
+    let plainText = tempDiv.textContent || tempDiv.innerText || '';
+    
+    // Clean up whitespace and remove multiple line breaks
+    plainText = plainText.replace(/\s+/g, ' ').trim();
+    
+    return plainText + linkReferences;
+  };
+
   const handleDownload = () => {
     const cleanedBody = cleanEmailBody(email.body);
+    const plainTextBody = createPlainTextEmail(cleanedBody);
+    
     const emailContent = `
 From: ${email.from}
 To: ${email.to}
 Subject: ${email.subject}
 Date: ${new Date(email.date).toLocaleString()}
 
-${cleanedBody}
+${plainTextBody}
     `.trim();
 
     const blob = new Blob([emailContent], { type: 'text/plain' });

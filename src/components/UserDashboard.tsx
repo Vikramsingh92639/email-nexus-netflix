@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
@@ -40,14 +39,18 @@ const UserDashboard = () => {
   }, [user, navigate]);
 
   useEffect(() => {
-    if (user) {
+    let mounted = true;
+    
+    if (user && mounted) {
       toast({
         title: "Welcome to Unknown Household Access",
         description: "You have successfully logged in to your dashboard.",
         className: "fixed top-4 left-4 z-50"
       });
     }
-  }, [user]);
+    
+    return () => { mounted = false; };
+  }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -233,14 +236,14 @@ const UserDashboard = () => {
                 className="netflix-input flex-1"
                 disabled={isLoading}
               />
-              <button 
+              <Button 
                 type="submit" 
                 className="netflix-button flex items-center"
                 disabled={isLoading}
               >
                 <Search className="mr-2 h-5 w-5" />
                 {isLoading ? "Searching..." : "Search"}
-              </button>
+              </Button>
             </form>
           </div>
 
