@@ -13,7 +13,8 @@ import {
   PaginationItem, 
   PaginationLink, 
   PaginationNext, 
-  PaginationPrevious 
+  PaginationPrevious,
+  PaginationEllipsis
 } from "@/components/ui/pagination";
 
 const UserDashboard = () => {
@@ -48,6 +49,7 @@ const UserDashboard = () => {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    setCurrentPage(1); // Reset to first page on new search
     
     if (!searchEmail.trim()) {
       setError("Email address is required");
@@ -131,11 +133,24 @@ const UserDashboard = () => {
   };
 
   const displayEmails = searchResults.length > 0 ? searchResults : emails;
-
+  const totalPages = Math.ceil(displayEmails.length / emailsPerPage);
   const indexOfLastEmail = currentPage * emailsPerPage;
   const indexOfFirstEmail = indexOfLastEmail - emailsPerPage;
   const currentEmails = displayEmails.slice(indexOfFirstEmail, indexOfLastEmail);
-  const totalPages = Math.ceil(displayEmails.length / emailsPerPage);
+
+  // Generate page numbers for pagination
+  const pageNumbers = [];
+  const maxVisiblePages = 5;
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+  if (endPage - startPage + 1 < maxVisiblePages) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    pageNumbers.push(i);
+  }
 
   return (
     <div className="min-h-screen bg-netflix-black text-netflix-white">
@@ -183,7 +198,9 @@ const UserDashboard = () => {
 
           <div className="space-y-4">
             <h2 className="text-xl font-semibold mb-4">
-              {displayEmails.length ? "Search Results" : "No emails found"}
+              {displayEmails.length ? 
+                `Showing ${indexOfFirstEmail + 1}-${Math.min(indexOfLastEmail, displayEmails.length)} of ${displayEmails.length} emails` 
+                : "No emails found"}
             </h2>
             
             {currentEmails.map((email, index) => (
@@ -201,9 +218,13 @@ const UserDashboard = () => {
                       handleToggleVisibility(email.id);
                     }}
                     className="text-netflix-white p-1 hover:text-netflix-red transition-colors"
-                    title="Hide email"
+                    title={email.isHidden ? "Show email" : "Hide email"}
                   >
-                    <EyeOff className="h-5 w-5" />
+                    {email.isHidden ? (
+                      <Eye className="h-5 w-5" />
+                    ) : (
+                      <EyeOff className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
                 
@@ -214,76 +235,61 @@ const UserDashboard = () => {
                 <div className="text-sm text-gray-400 mb-3">
                   {new Date(email.date).toLocaleString()}
                 </div>
-                
-                <div className="text-sm border-t border-netflix-lightgray pt-3 line-clamp-3">
-                  {email.body.substring(0, 200) + (email.body.length > 200 ? "..." : "")}
-                </div>
               </div>
             ))}
-            
-            {displayEmails.some(email => email.isHidden) && (
-              <div className="mt-8">
-                <h3 className="text-lg font-semibold mb-4">Hidden Emails</h3>
-                
-                {displayEmails.filter(email => email.isHidden).map((email, index) => (
-                  <div 
-                    key={email.id}
-                    className="bg-netflix-gray bg-opacity-50 p-4 rounded-lg hover:bg-netflix-lightgray transition-colors netflix-slide-up cursor-pointer"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                    onClick={() => handleEmailClick(email)}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="font-semibold opacity-70">{email.subject}</div>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleVisibility(email.id);
-                        }}
-                        className="text-netflix-white p-1 hover:text-netflix-red transition-colors"
-                        title="Show email"
-                      >
-                        <Eye className="h-5 w-5" />
-                      </button>
-                    </div>
-                    
-                    <div className="text-sm text-gray-400 mb-2">
-                      From: {email.from}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            
+
             {totalPages > 1 && (
-              <Pagination className="my-8">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      className={currentPage === 1 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                  
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        onClick={() => setCurrentPage(page)}
-                        isActive={currentPage === page}
-                        className="cursor-pointer"
-                      >
-                        {page}
-                      </PaginationLink>
+              <div className="flex justify-center mt-8">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        className={currentPage === 1 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+                      />
                     </PaginationItem>
-                  ))}
-                  
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      className={currentPage === totalPages ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+
+                    {startPage > 1 && (
+                      <>
+                        <PaginationItem>
+                          <PaginationLink onClick={() => setCurrentPage(1)}>1</PaginationLink>
+                        </PaginationItem>
+                        {startPage > 2 && <PaginationEllipsis />}
+                      </>
+                    )}
+
+                    {pageNumbers.map(number => (
+                      <PaginationItem key={number}>
+                        <PaginationLink
+                          isActive={currentPage === number}
+                          onClick={() => setCurrentPage(number)}
+                          className="cursor-pointer"
+                        >
+                          {number}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+
+                    {endPage < totalPages && (
+                      <>
+                        {endPage < totalPages - 1 && <PaginationEllipsis />}
+                        <PaginationItem>
+                          <PaginationLink onClick={() => setCurrentPage(totalPages)}>
+                            {totalPages}
+                          </PaginationLink>
+                        </PaginationItem>
+                      </>
+                    )}
+
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        className={currentPage === totalPages ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
             )}
           </div>
         </div>

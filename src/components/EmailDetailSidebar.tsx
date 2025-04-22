@@ -15,7 +15,6 @@ const EmailDetailSidebar = ({ email, isOpen, onClose }: EmailDetailSidebarProps)
   if (!email) return null;
 
   const handleDownload = () => {
-    // Create email content in text format
     const emailContent = `
 From: ${email.from}
 To: ${email.to}
@@ -25,7 +24,6 @@ Date: ${new Date(email.date).toLocaleString()}
 ${email.body}
     `.trim();
 
-    // Create a blob and download it
     const blob = new Blob([emailContent], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -37,14 +35,28 @@ ${email.body}
     URL.revokeObjectURL(url);
   };
 
+  // Clean the email body by removing HTML and CSS
+  const cleanEmailBody = (body: string) => {
+    // Remove CSS and media queries
+    const withoutCSS = body.replace(/@media[^{]*{[^}]*}/g, '');
+    // Remove HTML tags
+    const withoutHTML = withoutCSS.replace(/<[^>]*>/g, '');
+    // Remove multiple spaces and newlines
+    const cleanText = withoutHTML
+      .replace(/\s+/g, ' ')
+      .replace(/\n+/g, '\n')
+      .trim();
+    return cleanText;
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-[90%] sm:w-[600px]">
-        <SheetHeader className="border-b pb-4 flex flex-row justify-between items-center">
-          <SheetTitle className="text-xl font-bold text-gray-800">{email.subject}</SheetTitle>
+      <SheetContent className="w-[90%] sm:w-[600px] bg-black text-white">
+        <SheetHeader className="border-b border-gray-800 pb-4 flex flex-row justify-between items-center">
+          <SheetTitle className="text-xl font-bold text-white">{email.subject}</SheetTitle>
           <button 
             onClick={handleDownload}
-            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors gap-1"
+            className="flex items-center text-gray-400 hover:text-white transition-colors gap-1"
             title="Download email"
           >
             <Download className="h-5 w-5" />
@@ -53,30 +65,27 @@ ${email.body}
         </SheetHeader>
         <ScrollArea className="h-[calc(100vh-8rem)] mt-6">
           <div className="space-y-6">
-            {/* Sender Information */}
             <div className="flex items-start space-x-3">
-              <User className="w-5 h-5 mt-1 text-gray-500" />
+              <User className="w-5 h-5 mt-1 text-gray-400" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-500">From:</p>
-                <p className="text-base font-medium text-gray-800">{email.from}</p>
+                <p className="text-sm font-medium text-gray-400">From:</p>
+                <p className="text-base font-medium text-white">{email.from}</p>
               </div>
             </div>
 
-            {/* Recipient Information */}
             <div className="flex items-start space-x-3">
-              <Mail className="w-5 h-5 mt-1 text-gray-500" />
+              <Mail className="w-5 h-5 mt-1 text-gray-400" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-500">To:</p>
-                <p className="text-base text-gray-800">{email.to}</p>
+                <p className="text-sm font-medium text-gray-400">To:</p>
+                <p className="text-base text-white">{email.to}</p>
               </div>
             </div>
 
-            {/* Date & Time */}
             <div className="flex items-start space-x-3">
-              <Clock className="w-5 h-5 mt-1 text-gray-500" />
+              <Clock className="w-5 h-5 mt-1 text-gray-400" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-500">Date & Time:</p>
-                <p className="text-base text-gray-800">
+                <p className="text-sm font-medium text-gray-400">Date & Time:</p>
+                <p className="text-base text-white">
                   {new Date(email.date).toLocaleString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
@@ -90,12 +99,11 @@ ${email.body}
               </div>
             </div>
 
-            {/* Email Body */}
-            <div className="border-t pt-6">
-              <p className="text-sm font-medium text-gray-500 mb-4">Message:</p>
-              <div className="prose prose-sm max-w-none bg-white rounded-lg p-6 shadow-sm">
-                <div className="whitespace-pre-wrap text-base text-gray-800">
-                  {email.body}
+            <div className="border-t border-gray-800 pt-6">
+              <p className="text-sm font-medium text-gray-400 mb-4">Message:</p>
+              <div className="prose prose-sm max-w-none bg-black rounded-lg p-6">
+                <div className="whitespace-pre-wrap text-base text-white">
+                  {cleanEmailBody(email.body)}
                 </div>
               </div>
             </div>
