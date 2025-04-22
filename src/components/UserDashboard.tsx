@@ -16,6 +16,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis
 } from "@/components/ui/pagination";
+import { Button } from "@/components/ui/button";
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
