@@ -1,14 +1,17 @@
 
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/components/ui/use-toast";
+import { Eye, EyeOff } from "lucide-react";
+import { motion } from "framer-motion";
 
 const AdminLogin = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   const { adminLogin } = useAuth();
   const navigate = useNavigate();
@@ -32,6 +35,7 @@ const AdminLogin = () => {
         toast({
           title: "Welcome to Unknown Household Access",
           description: "You have successfully logged in to the admin dashboard.",
+          className: "top-0 left-0",
         });
         navigate("/admin/dashboard");
       } else {
@@ -46,70 +50,94 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-netflix-black netflix-gradient">
-      <div className="max-w-md w-full px-6 py-8 bg-netflix-gray rounded-lg shadow-xl netflix-scale-in">
-        <h1 className="text-3xl font-bold text-netflix-white text-center mb-6">Admin Login</h1>
-        
-        {error && (
-          <div className="bg-netflix-red bg-opacity-30 text-netflix-white p-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-        
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="username" className="block text-netflix-white mb-2">
-              Username
-            </label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Admin username"
-              className="netflix-input w-full"
-              disabled={isLoading}
-            />
-          </div>
-          
-          <div>
-            <label htmlFor="password" className="block text-netflix-white mb-2">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Admin password"
-              className="netflix-input w-full"
-              disabled={isLoading}
-            />
-          </div>
-          
-          <button 
-            type="submit" 
-            className="netflix-button w-full py-3"
-            disabled={isLoading}
-          >
-            {isLoading ? "Logging in..." : "Login"}
-          </button>
-          
-          <div className="text-center">
-            <a 
-              href="/" 
-              className="text-netflix-white hover:text-netflix-red transition-colors"
+    <motion.div 
+      className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black to-gray-900"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <motion.div 
+        className="max-w-md w-full px-8 py-10 rounded-lg bg-black/40 backdrop-blur-sm border border-gray-800"
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.4 }}
+      >
+        <div className="space-y-8">
+          <div className="flex gap-8 text-2xl font-medium border-b border-gray-800">
+            <Link 
+              to="/user-login" 
+              className="pb-4 text-gray-400 hover:text-white transition-colors"
             >
-              Back to role selection
-            </a>
+              User Login
+            </Link>
+            <Link 
+              to="/admin-login" 
+              className="pb-4 text-white border-b-2 border-netflix-red"
+            >
+              Admin Login
+            </Link>
           </div>
-
-          <div className="text-center text-sm text-netflix-white opacity-60 mt-4">
-            Default credentials: Admin@Akshay / Admin@Akshay
-          </div>
-        </form>
-      </div>
-    </div>
+          
+          {error && (
+            <div className="bg-netflix-red/10 border border-netflix-red/20 text-netflix-red p-3 rounded">
+              {error}
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="flex flex-col space-y-2">
+              <label className="text-gray-400">Username</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter admin username"
+                className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red"
+                disabled={isLoading}
+              />
+            </div>
+            
+            <div className="flex flex-col space-y-2">
+              <label className="text-gray-400">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter admin password"
+                  className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red"
+                  disabled={isLoading}
+                />
+                <button 
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5 text-gray-500" />
+                  ) : (
+                    <Eye className="w-5 h-5 text-gray-500" />
+                  )}
+                </button>
+              </div>
+            </div>
+            
+            <button 
+              type="submit" 
+              className="w-full bg-netflix-red hover:bg-netflix-red/90 text-white py-3 rounded-lg transition-colors"
+              disabled={isLoading}
+            >
+              {isLoading ? "Logging in..." : "Login as Admin"}
+            </button>
+            
+            <div className="text-center text-sm text-gray-400 mt-4">
+              Default credentials: Admin@Akshay / Admin@Akshay
+            </div>
+          </form>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

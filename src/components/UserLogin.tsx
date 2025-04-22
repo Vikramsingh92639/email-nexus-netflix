@@ -1,10 +1,10 @@
 
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/components/ui/use-toast";
 import { Eye, EyeOff } from "lucide-react";
-import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const UserLogin = () => {
   const [accessToken, setAccessToken] = useState("");
@@ -33,6 +33,7 @@ const UserLogin = () => {
         toast({
           title: "Welcome to Unknown Household Access",
           description: "You have successfully logged in to your dashboard.",
+          className: "top-0 left-0",
         });
         navigate("/dashboard");
       } else {
@@ -48,8 +49,19 @@ const UserLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black to-gray-900">
-      <div className="max-w-md w-full px-8 py-10 rounded-lg bg-black/40 backdrop-blur-sm border border-gray-800">
+    <motion.div 
+      className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black to-gray-900"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <motion.div 
+        className="max-w-md w-full px-8 py-10 rounded-lg bg-black/40 backdrop-blur-sm border border-gray-800"
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.4 }}
+      >
         <div className="space-y-8">
           <div className="flex gap-8 text-2xl font-medium border-b border-gray-800">
             <Link 
@@ -107,8 +119,8 @@ const UserLogin = () => {
             </button>
           </form>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
